@@ -5,7 +5,12 @@ use std::path::PathBuf;
 pub const DEFAULT_OUTPUT_DIR: &str = "~/Downloads/generated-images";
 
 /// Providers that can turn a prompt into an image.
-pub const GENERATE_PROVIDERS: [&str; 6] = ["openai", "gemini", "replicate", "together", "grok", "ideogram"];
+pub const GENERATE_PROVIDERS: [&str; 7] = [
+    "openai", "gemini", "replicate", "together", "grok", "ideogram", "custom",
+];
+
+/// Name of the OpenAI-compatible relay slot the UI edits.
+pub const CUSTOM_PROVIDER: &str = "custom";
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(default)]
@@ -16,6 +21,8 @@ pub struct ProviderConfig {
     pub model: String,
     /// Model used for image editing (openai only).
     pub edit_model: String,
+    /// Wire flavor for OpenAI-compatible relays: "openai" or "siliconflow".
+    pub format: String,
 }
 
 impl ProviderConfig {
@@ -25,6 +32,7 @@ impl ProviderConfig {
             base_url: String::new(),
             model: model.to_string(),
             edit_model: String::new(),
+            format: String::new(),
         }
     }
 }
@@ -59,8 +67,12 @@ impl Default for Config {
         providers.insert("photoroom".into(), ProviderConfig::new(""));
         providers.insert("fal".into(), ProviderConfig::new("fal-ai/flux-pro/kontext"));
         providers.insert("anthropic".into(), ProviderConfig::new("claude-haiku-4-5"));
+        providers.insert("custom".into(), ProviderConfig::new(""));
         if let Some(openai) = providers.get_mut("openai") {
             openai.edit_model = "gpt-image-1.5".into();
+        }
+        if let Some(custom) = providers.get_mut("custom") {
+            custom.format = "openai".into();
         }
 
         Self {
@@ -161,10 +173,22 @@ impl Config {
         self.providers.get(name)
     }
 
+    /// A provider is usable when it has a key — and, for the custom relay
+    /// slot, also a base URL and a model name, since it has neither default.
     pub fn is_configured(&self, name: &str) -> bool {
-        self.provider(name)
-            .map(|p| !p.api_key.trim().is_empty())
-            .unwrap_or(false)
+        match self.provider(name) {
+            None => false,
+            Some(entry) => {
+                let keyed = if name == CUSTOM_PROVIDER {
+                    !entry.api_key.trim().is_empty()
+                        && !entry.base_url.trim().is_empty()
+                        && !entry.model.trim().is_empty()
+                } else {
+                    !entry.api_key.trim().is_empty()
+                };
+                keyed
+            }
+        }
     }
 
     pub fn available_generate_providers(&self) -> Vec<&'static str> {

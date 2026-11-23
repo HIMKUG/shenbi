@@ -1,8 +1,10 @@
 mod capabilities;
 mod config;
+mod custom;
 mod error;
 mod http;
 mod imaging;
+mod install;
 mod mcp;
 mod output;
 mod presets;
@@ -17,9 +19,13 @@ use std::sync::Arc;
 const USAGE: &str = concat!(
     "shenbi — image generation MCP server\n\n",
     "Usage:\n",
-    "  shenbi               启动配置界面（默认 http://127.0.0.1:7788）\n",
-    "  shenbi mcp           以 stdio 运行 MCP 服务\n",
-    "  shenbi ui --port N   仅启动配置界面并指定端口\n\n",
+    "  shenbi                启动配置界面（默认 http://127.0.0.1:7788）\n",
+    "  shenbi mcp            以 stdio 运行 MCP 服务\n",
+    "  shenbi ui --port N    仅启动配置界面并指定端口\n",
+    "  shenbi install        注册为 MCP 服务（用户级，AI 随用随启）\n",
+    "  shenbi install user   注册到 ~/.claude.json（默认）\n",
+    "  shenbi install project    注册到当前目录的 .mcp.json\n",
+    "  shenbi uninstall      取消注册\n\n",
     "配置文件：~/.shenbi/config.json（可用 SHENBI_CONFIG 覆盖）\n",
 );
 
@@ -60,6 +66,21 @@ async fn main() {
             if let Err(err) = ui::serve(config, port).await {
                 eprintln!("shenbi: failed to start UI: {err}");
                 std::process::exit(1);
+            }
+        }
+        "install" | "uninstall" => {
+            let scope = args.get(1).map(String::as_str).unwrap_or("user");
+            match install::register(scope, mode == "uninstall") {
+                Ok(outcome) => {
+                    println!("{} → {}", outcome.detail, outcome.target);
+                    if mode == "install" {
+                        println!("下次启动 AI 客户端时会自动拉起 shenbi 的 MCP 服务。");
+                    }
+                }
+                Err(err) => {
+                    eprintln!("shenbi: {mode} failed: {err}");
+                    std::process::exit(1);
+                }
             }
         }
         other => {

@@ -4,13 +4,13 @@
 
 **一个可执行文件，把六家图像模型的生成、改图、抠图、排版、放大、分析收进一个 MCP 接口，并配一个本地配置界面。**
 
-Rust 重写 · 零运行时依赖 · 冷启动 < 1 秒 · 单文件 6.3 MiB
+Rust 重写 · 零运行时依赖 · 冷启动 < 1 秒 · 单文件 6.5 MiB
 
 [![Rust](https://img.shields.io/badge/Rust-1.75%2B-c96a3f?logo=rust&logoColor=white)](#环境要求)
 [![MCP](https://img.shields.io/badge/MCP-2025--06--18-6b5bd2)](#接入-claude-code)
 [![License](https://img.shields.io/badge/License-MIT-3d7a3d)](LICENSE)
 [![Tools](https://img.shields.io/badge/tools-7-b9d94a)](#工具全景)
-[![Providers](https://img.shields.io/badge/providers-9-b9d94a)](#服务商矩阵)
+[![Providers](https://img.shields.io/badge/providers-10-b9d94a)](#服务商矩阵)
 
 </div>
 
@@ -26,14 +26,23 @@ cargo build --release
 .\target\release\shenbi.exe
 ```
 
-浏览器自动打开 **http://127.0.0.1:7788** —— 粘贴 API Key、按 `Ctrl S`。完成。
+浏览器自动打开 **http://127.0.0.1:7788** —— 粘贴 API Key、按 `Ctrl S`，再点底部「一键注册」。完成。
 
-把它接进 Claude Code，复制界面底部那段配置到项目的 `.mcp.json` 即可：
+注册之后不必再手动启动：Claude Code / Claude Desktop 每次需要图像能力时会自己拉起 `shenbi mcp`。
+
+不想点界面也行，一条命令搞定：
+
+```powershell
+shenbi install
+```
+
+手动配置的话，把下面这段写进 `.mcp.json` 即可：
 
 ```json
 {
   "mcpServers": {
     "shenbi": {
+      "type": "stdio",
       "command": "C:/path/to/shenbi.exe",
       "args": ["mcp"]
     }
@@ -51,7 +60,7 @@ cargo build --release
 
 - [打开配置界面](#打开配置界面)
 - [界面一览](#界面一览)
-- [接入 Claude Code](#接入-claude-code)
+- [接入 AI 客户端](#接入-ai-客户端)
 - [为什么是神笔](#为什么是神笔)
 - [工具全景](#工具全景)
 - [服务商矩阵](#服务商矩阵)
@@ -77,6 +86,7 @@ cargo build --release
 | 只开界面 | `shenbi ui` | 同上，语义更明确 |
 | 换端口 | `shenbi ui --port 9000` | 端口被占用时用 |
 | 只跑 MCP | `shenbi mcp` | stdio，无界面、无端口、无日志噪音 |
+| 注册给 AI 客户端 | `shenbi install` | 之后每次自动启动，见[接入 AI 客户端](#接入-ai-客户端) |
 | 不自动开浏览器 | `SHENBI_NO_BROWSER=1 shenbi` | 服务器 / 远程终端里用 |
 
 界面在浏览器里就是一个静态页，**不联网、不加载 CDN、不发遥测**。它读写的唯一东西是本地配置文件：
@@ -107,14 +117,48 @@ $SHENBI_CONFIG                 # 覆盖路径（CI、多套配置）
 
 ---
 
-## 接入 Claude Code
+## 接入 AI 客户端
 
-界面底部的「接入 Claude Code」区域会把当前可执行文件的**绝对路径**填进模板，点「复制」即可：
+**注册一次，之后每次都能用。** MCP 是 stdio 服务：客户端（Claude Code / Claude Desktop）会在需要时自己拉起进程，所以注册只需要做一次，此后每次开新会话、每台机器上的每个项目都自动可用 —— 不需要先手动 `shenbi` 再连上去。
+
+三种注册方式，任选其一：
+
+### ① 界面一键注册（推荐）
+
+打开配置界面，底部「接入 AI 客户端」点 **一键注册**。它会：
+
+1. 检测本机是否装有 `claude` CLI，有则走官方 `claude mcp add --scope user`，由 CLI 校验并写入正确位置；
+2. 没有 CLI 则直接合并进 `~/.claude.json` 的 `mcpServers`，**写入前自动备份**成 `~/.claude.json.bak-<时间戳>`；
+3. 只改 `mcpServers.shenbi` 这一项，文件里其它配置原样保留。
+
+按钮会实时显示状态：「已注册」/「更新注册路径」（已注册但指向旧路径）/「一键注册」。重开 AI 客户端即可用。
+
+### ② 命令行注册
+
+```powershell
+shenbi install
+```
+
+| 命令 | 作用 |
+| --- | --- |
+| `shenbi install` | 注册到用户级（所有项目可用） |
+| `shenbi install user` | 同上，语义明确 |
+| `shenbi install project` | 只注册到当前目录的 `.mcp.json` |
+| `shenbi uninstall` | 取消注册 |
+
+注册后可用 `claude mcp list` 验证：
+
+```
+shenbi: D:/path/to/shenbi.exe mcp - ✔ Connected
+```
+
+### ③ 手动配置
 
 ```json
 {
   "mcpServers": {
     "shenbi": {
+      "type": "stdio",
       "command": "C:/path/to/shenbi.exe",
       "args": ["mcp"]
     }
@@ -122,10 +166,11 @@ $SHENBI_CONFIG                 # 覆盖路径（CI、多套配置）
 }
 ```
 
-- 项目级：写到项目根目录的 `.mcp.json`
-- 用户级：`claude mcp add shenbi -- C:/path/to/shenbi.exe mcp`
+- 项目级：项目根目录的 `.mcp.json`
+- 用户级：`~/.claude.json` 的 `mcpServers`
+- Claude Desktop：`claude_desktop_config.json` 的 `mcpServers`
 
-Claude Desktop 同理，写进 `claude_desktop_config.json` 的 `mcpServers`。
+界面「手动配置」折叠区会把当前可执行文件的绝对路径填进去，点「复制」即可。
 
 **MCP 走 stdio，不占端口、不开 socket，所以不存在「端口被占用」和「防火墙弹窗」。** 服务端日志只走 stderr，绝不污染 stdout 上的 JSON-RPC 流 —— 这是 MCP 实现最容易踩、也最容易让客户端直接超时卡死的坑。
 
@@ -151,7 +196,7 @@ Claude Desktop 同理，写进 `claude_desktop_config.json` 的 `mcpServers`。
 | 维度 | 实现 |
 | --- | --- |
 | **无运行时** | 不依赖 Node / Python / `sharp` 原生库 / libvips。双击就跑，拷贝到任何 Windows 机器就跑。 |
-| **单文件分发** | Release 二进制 6.3 MiB，无 `.node`、无 `node_modules`、无动态库目录。 |
+| **单文件分发** | Release 二进制 6.5 MiB，无 `.node`、无 `node_modules`、无动态库目录。 |
 | **图像处理自研** | resize / crop / aspectCrop / circleMask / composite / palette 全部用 Rust `image` crate 实现，含 1px 抗锯齿的圆形遮罩、锚点定位、透明度混合。 |
 | **协议层手写** | 直接实现 JSON-RPC 2.0 + MCP `2025-06-18` 的方法集（`initialize` / `tools/list` / `tools/call` / `ping`），没有中间框架，没有版本漂移。 |
 | **失败可解释** | 所有错误是 `{code, message, retryable, suggestion}` 四元组。`TIMEOUT` / `PROVIDER_FAILURE` / `CONSTRAINT_VIOLATION` / `INPUT_TOO_LARGE` 可被调用方程序化处理，不靠正则解析报错文本。 |
@@ -162,12 +207,14 @@ Claude Desktop 同理，写进 `claude_desktop_config.json` 的 `mcpServers`。
 
 - **配置零文档**：界面里每一项都自带说明，密钥字段告诉你「已保存 · 留空不修改」。
 - **诊断内建**：`list_capabilities` 会告诉你「在当前这套 Key 下，到底哪些 op + provider 组合真的能用」，配了单测连通性。
-- **接入零摩擦**：界面直接生成 `.mcp.json` 片段，路径已填好，复制粘贴即完。
+- **接入零摩擦**：界面「一键注册」直接写进 `~/.claude.json`（写入前自动备份，有 `claude` CLI 时优先走官方命令），之后每次自动启动；也可 `shenbi install` 一条命令完成。
 - **失败不静默**：生成失败会附上 `availableProviders`；`image_task` 失败会给出完整 trace，告诉你哪个节点、为什么、能不能重试。
 
 ### 扩展性
 
-新增一个服务商是**一个 `match` 分支 + 一个 HTTP 函数**：
+**想接一个没内置的模型服务？大概率不用改代码。** 只要它是 OpenAI 兼容的 `/images/generations`（中转站、one-api、new-api、LiteLLM、SiliconFlow……），在界面「自定义接口」里填地址、Key、模型名即可 —— 见[自定义 API 接口](#自定义-api-接口)。
+
+真要写死一个新服务商，也只是**一个 `match` 分支 + 一个 HTTP 函数**：
 
 ```rust
 // src/providers.rs
@@ -234,6 +281,26 @@ goal ──► 模板匹配 ──命中──► 直接执行（0 成本、毫�
 | **Together AI** | `FLUX.1-schnell` | $0.003 | 最便宜的一档 |
 | **xAI Grok** | `grok-imagine-image-2.0` | $0.02 | 忽略尺寸参数，会自动提示 |
 | **Ideogram** | `ideogram-v3-0` | $0.08 | 文字渲染最强，适合带字海报 |
+| **自定义接口** | 由你指定 | 由你的渠道决定 | 任意 OpenAI 兼容端点，见下节 |
+
+### 自定义 API 接口
+
+手里有中转站、自建 one-api / new-api / LiteLLM、或者 SiliconFlow 这类 OpenAI 兼容服务？不用改代码，界面里填三个字段就能当第 7 个服务商使用：
+
+| 字段 | 例 |
+| --- | --- |
+| 接口地址 | `https://api.siliconflow.com/v1`（填到 `/v1` 或完整 endpoint 都行） |
+| API Key | 你的令牌 |
+| 模型名 | `black-forest-labs/FLUX.2-pro` |
+| 接口格式 | `OpenAI 兼容（size）` 或 `SiliconFlow（image_size）` |
+
+实现要点（`src/custom.rs`）：
+
+- **地址归一化**：`https://host`、`https://host/v1`、`https://host/v1/images/generations` 三种写法都被识别为同一个 endpoint。
+- **两种线格式**：OpenAI 系发 `{"size": "1024x1024"}`；SiliconFlow 系发 `{"image_size": "1024x576", "batch_size": 1}`，尺寸取它文档里的推荐分辨率。
+- **响应兜底**：从 `data[0].b64_json`、`data[0].url`、`images[0].url` 以及裸字符串 URL / data URL 里都能取到图 —— 中转站们在这点上百花齐放。
+- **连通性探测**：点「测试连接」会请求 `/models`，返回上游原话。
+- 统计成本时按 0 计（渠道价格未知，宁可少报不虚构）。
 
 ### 能力类（对已有图片动手）
 
@@ -405,6 +472,7 @@ tokio::fs::rename(&tmp, path).await?;
 | `max_concurrent` | `3` | 批量默认并发（1–8） |
 | `request_timeout_ms` | `300000` | 单次上游请求超时（5 s–600 s） |
 | `providers.*.base_url` | 空 | 空＝官方地址；填了则走代理或兼容网关 |
+| `providers.custom.format` | `openai` | 自定义接口的线格式：`openai` 或 `siliconflow` |
 
 ### 环境变量（优先级高于文件）
 
@@ -525,7 +593,7 @@ tokio::fs::rename(&tmp, path).await?;
 
 | 项 | 上游 | 神笔 |
 | --- | --- | --- |
-| 运行时 | Node 22 + `sharp` + `node-gyp` | 无，单文件 6.3 MiB |
+| 运行时 | Node 22 + `sharp` + `node-gyp` | 无，单文件 6.5 MiB |
 | 冷启动 | 数百毫秒（含模块加载） | 约 10 ms（本地磁盘热态） |
 | 配置 | `.env` + `export` + 手改 `.mcp.json` | 本地 Web UI + 连通性自测 |
 | 图像处理 | sharp（libvips 原生依赖） | 纯 Rust `image` crate |
@@ -547,13 +615,13 @@ tokio::fs::rename(&tmp, path).await?;
 
 | 指标 | 实测值 |
 | --- | --- |
-| Release 二进制 | **6.3 MiB** |
+| Release 二进制 | **6.5 MiB** |
 | 直接依赖 | 8 个 |
 | 传递依赖 | 231 个（`Cargo.lock`） |
 | CLI 冷启动 | 首次 131 ms（冷缓存），之后 **9–10 ms** |
 | MCP 握手（`tools/list` 全流程） | 约 140 ms（含进程启动） |
 | 配置界面可用 | 约 0.6 s（含进程启动，热态） |
-| 源码规模 | 3,726 行 Rust + 598 行前端（单文件，无构建步骤） |
+| 源码规模 | 4,209 行 Rust + 697 行前端（单文件，无构建步骤） |
 
 前端没有 npm、没有打包器、没有框架 —— 一个 `include_str!` 嵌进二进制里的 HTML，改完 `cargo build` 就生效。
 
@@ -577,6 +645,8 @@ src/
 ├── providers.rs     六家生成服务商 + OpenAI 编辑通道
 ├── capabilities.rs  能力注册表与 8 类 op 的实现
 ├── task.rs          模板、Claude 规划器、计划校验、DAG 执行
+├── custom.rs        OpenAI 兼容自定义端点：地址归一、两种线格式、响应兜底
+├── install.rs       MCP 注册/注销：优先 claude CLI，否则合并 ~/.claude.json 并备份
 ├── imaging.rs       图像算子：缩放、裁剪、圆遮罩、合成、调色板
 ├── output.rs        输出路径解析与原子落盘、输入白名单
 ├── presets.rs       九个资产预设及其后处理链

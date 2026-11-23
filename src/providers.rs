@@ -120,6 +120,7 @@ pub async fn generate(
         "together" => together_generate(config, &model, prompt, size).await,
         "grok" => grok_generate(config, &model, prompt).await,
         "ideogram" => ideogram_generate(config, &model, prompt, size).await,
+        "custom" => crate::custom::generate(config, provider, &model, prompt, size).await,
         other => Err(AppError::constraint(format!("unknown provider '{other}'"))),
     }
 }

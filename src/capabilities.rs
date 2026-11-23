@@ -49,7 +49,7 @@ pub async fn registered_pairs(config: &Config) -> Vec<Value> {
         }));
     };
 
-    for provider in ["openai", "gemini", "replicate", "together", "grok", "ideogram"] {
+    for provider in crate::config::GENERATE_PROVIDERS {
         if config.is_configured(provider) {
             let model = providers::default_model(config, provider);
             push(&mut out, "generate", provider, model, cost_of(provider), false, true);
@@ -88,6 +88,7 @@ fn cost_of(provider: &str) -> f64 {
         "together" => 0.003,
         "grok" => 0.02,
         "ideogram" => 0.08,
+        // Unknown relay pricing; report 0 rather than invent a number.
         _ => 0.0,
     }
 }

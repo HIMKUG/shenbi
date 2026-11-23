@@ -105,6 +105,20 @@ pub async fn write_atomic(path: &Path, data: &[u8]) -> anyhow::Result<()> {
     Ok(())
 }
 
+/// Same guarantees as [`write_atomic`], for callers that are not async.
+pub fn write_atomic_sync(path: &Path, data: &[u8]) -> anyhow::Result<()> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp = path.with_extension(format!(
+        "{}.tmp",
+        path.extension().and_then(|e| e.to_str()).unwrap_or("bin")
+    ));
+    std::fs::write(&tmp, data)?;
+    std::fs::rename(&tmp, path)?;
+    Ok(())
+}
+
 pub fn mime_for_format(format: Option<&str>) -> Option<&'static str> {
     match format {
         Some("png") => Some("image/png"),

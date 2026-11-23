@@ -4,3 +4,5 @@
 /.tmp-*
 *.tmp
 /.claude
+/.mcp.json
+/.mcp.json.bak-*

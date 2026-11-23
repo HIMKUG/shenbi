@@ -177,6 +177,20 @@
   details.adv .grid3 { margin-top: 14px; }
 
   /* mcp */
+  .install-row { display: flex; align-items: center; gap: 14px; padding: 4px 0 14px; }
+  details.manual summary {
+    cursor: pointer;
+    font-size: 12.5px;
+    color: var(--dim);
+    list-style: none;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 2px 0 12px;
+  }
+  details.manual summary::-webkit-details-marker { display: none; }
+  details.manual summary::before { content: "+"; font-family: var(--mono); }
+  details.manual[open] summary::before { content: "–"; }
   .snippet {
     position: relative;
     border: 1px solid var(--line);
@@ -277,12 +291,18 @@
   </section>
 
   <section aria-labelledby="h-mcp">
-    <div class="sec-head"><h2 id="h-mcp">接入 Claude Code</h2></div>
-    <p class="hint">把下面配置写入项目的 <code>.mcp.json</code>。</p>
-    <div class="snippet">
-      <button class="quiet copy" id="copy-mcp" type="button">复制</button>
-      <pre id="mcp-snippet"></pre>
+    <div class="sec-head"><h2 id="h-mcp">接入 AI 客户端</h2></div>
+    <div class="install-row">
+      <button type="button" class="primary" id="install-mcp">一键注册</button>
+      <span class="probe" id="install-status" role="status"></span>
     </div>
+    <details class="manual">
+      <summary>手动配置</summary>
+      <div class="snippet">
+        <button class="quiet copy" id="copy-mcp" type="button">复制</button>
+        <pre id="mcp-snippet"></pre>
+      </div>
+    </details>
   </section>
 </div>
 
@@ -306,12 +326,13 @@
     together: "Together AI",
     grok: "xAI Grok",
     ideogram: "Ideogram",
+    custom: "自定义接口",
     photoroom: "Photoroom",
     fal: "fal.ai",
     anthropic: "Anthropic",
   };
-  const ORDER = ["openai", "gemini", "replicate", "together", "grok", "ideogram", "photoroom", "fal", "anthropic"];
-  const TESTABLE = new Set(["openai", "gemini", "replicate", "together", "grok", "anthropic"]);
+  const ORDER = ["openai", "gemini", "replicate", "together", "grok", "ideogram", "custom", "photoroom", "fal", "anthropic"];
+  const TESTABLE = new Set(["openai", "gemini", "replicate", "together", "grok", "anthropic", "custom"]);
 
   let state = null;
   let dirty = false;
@@ -348,6 +369,28 @@
         <span class="chev">▶</span>
       </button>
       <div class="p-body">
+        ${name === "custom" ? `
+        <div class="field">
+          <label>接口地址<span class="opt">OpenAI 兼容</span></label>
+          <input type="text" data-field="baseUrl" spellcheck="false" placeholder="https://api.example.com/v1" />
+        </div>
+        <div class="field">
+          <label>API Key</label>
+          <input type="password" data-field="apiKey" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>模型名</label>
+            <input type="text" data-field="model" spellcheck="false" placeholder="如 black-forest-labs/FLUX.2-pro" />
+          </div>
+          <div class="field">
+            <label>接口格式</label>
+            <select data-field="format">
+              <option value="openai">OpenAI 兼容（size）</option>
+              <option value="siliconflow">SiliconFlow（image_size）</option>
+            </select>
+          </div>
+        </div>` : `
         <div class="field">
           <label>API Key<span class="opt"></span></label>
           <input type="password" data-field="apiKey" autocomplete="off" spellcheck="false" />
@@ -366,7 +409,7 @@
             <label>Base URL<span class="opt">可选</span></label>
             <input type="text" data-field="baseUrl" spellcheck="false" placeholder="默认官方地址" />
           </div>`}
-        </div>
+        </div>`}
         <div class="p-actions">
           ${TESTABLE.has(name) ? `<button type="button" class="quiet test">测试连接</button>` : ""}
           <span class="probe" role="status"></span>
@@ -378,6 +421,9 @@
     const keyInput = wrap.querySelector('[data-field="apiKey"]');
     const modelInput = wrap.querySelector('[data-field="model"]');
     const optNote = wrap.querySelector(".field .opt");
+    const baseInput = wrap.querySelector('[data-field="baseUrl"]');
+    const editInput = wrap.querySelector('[data-field="editModel"]');
+    const formatInput = wrap.querySelector('[data-field="format"]');
 
     const renderMeta = () => {
       meta.textContent = p.configured ? (modelInput.value || "已保存") : "未配置";
@@ -391,11 +437,9 @@
       keyInput.placeholder = "粘贴 API Key";
     }
     modelInput.value = p.model || "";
-    wrap.querySelector('[data-field="editModel"]')?.setAttribute("value", p.editModel || "");
-    const editInput = wrap.querySelector('[data-field="editModel"]');
     if (editInput) editInput.value = p.editModel || "";
-    const baseInput = wrap.querySelector('[data-field="baseUrl"]');
     if (baseInput) baseInput.value = p.baseUrl || "";
+    if (formatInput) formatInput.value = p.format || "openai";
 
     renderMeta();
 
@@ -420,6 +464,7 @@
     });
     editInput?.addEventListener("input", markDirty);
     baseInput?.addEventListener("input", markDirty);
+    formatInput?.addEventListener("change", markDirty);
 
     const testBtn = wrap.querySelector(".test");
     const probe = wrap.querySelector(".probe");
@@ -498,10 +543,62 @@
       node.value = state[node.dataset.default] ?? "";
     }
     el("mcp-snippet").textContent = JSON.stringify(state.mcp, null, 2);
+    renderInstall();
     setDirty(false);
     say("　");
     el("state-text").textContent = state.savedAt ? `已保存 ${state.savedAt}` : "尚未保存";
   }
+
+  async function renderInstall() {
+    const button = el("install-mcp");
+    const status = el("install-status");
+    status.dataset.kind = "";
+    try {
+      const info = await fetch("/api/install").then((r) => r.json());
+      if (info.registered && info.matchesThisBinary) {
+        button.textContent = "已注册";
+        button.disabled = true;
+        status.dataset.kind = "ok";
+        status.textContent = "AI 启动时自动拉起，无需再操作";
+      } else if (info.registered) {
+        button.textContent = "更新注册路径";
+        button.disabled = false;
+        status.textContent = "已注册，但指向另一个可执行文件";
+      } else {
+        button.textContent = "一键注册";
+        button.disabled = false;
+        status.textContent = "注册后 Claude Code / Desktop 自动启动它";
+      }
+    } catch {
+      status.dataset.kind = "fail";
+      status.textContent = "无法读取注册状态";
+    }
+  }
+
+  el("install-mcp").addEventListener("click", async () => {
+    const button = el("install-mcp");
+    const status = el("install-status");
+    button.disabled = true;
+    status.dataset.kind = "";
+    status.textContent = "注册中…";
+    try {
+      const response = await fetch("/api/install", { method: "POST" });
+      const body = await response.json();
+      if (body.ok) {
+        status.dataset.kind = "ok";
+        status.textContent = body.detail || "已注册";
+        button.textContent = "已注册";
+      } else {
+        status.dataset.kind = "fail";
+        status.textContent = body.error || "注册失败";
+        button.disabled = false;
+      }
+    } catch {
+      status.dataset.kind = "fail";
+      status.textContent = "无法访问本地服务";
+      button.disabled = false;
+    }
+  });
 
   // Static controls keep their listeners; only the provider rows re-render.
   el("defaultProvider").addEventListener("change", markDirty);
@@ -527,6 +624,8 @@
       if (edit) entry.editModel = edit.value.trim();
       const base = read("baseUrl");
       if (base) entry.baseUrl = base.value.trim();
+      const format = read("format");
+      if (format) entry.format = format.value;
       if (key) entry.apiKey = key;
       providers[name] = entry;
     }

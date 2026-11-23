@@ -68,6 +68,10 @@ pub fn decode_b64(value: &str) -> Result<Vec<u8>, AppError> {
 }
 
 pub async fn download_image(url: &str, timeout: Duration) -> Result<Vec<u8>, AppError> {
+    // Relays sometimes hand back an inline data URL instead of a hosted file.
+    if url.starts_with("data:") {
+        return decode_b64(url);
+    }
     for attempt in 0..=1 {
         let result = client().get(url).timeout(timeout).send().await;
         match result {

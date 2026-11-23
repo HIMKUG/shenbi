@@ -23,6 +23,7 @@ pub async fn serve(config: Arc<Config>, port: u16) -> anyhow::Result<()> {
         .route("/", get(index))
         .route("/api/config", get(read_config).put(write_config))
         .route("/api/providers/{name}/test", post(test_provider))
+        .route("/api/install", get(install_status).post(install_register))
         .layer(axum::middleware::from_fn(loopback_only))
         .with_state(state);
 
@@ -75,9 +76,12 @@ async fn index() -> Html<&'static str> {
     Html(INDEX_HTML)
 }
 
+const UI_ORDER: [&str; 10] = [
+    "openai", "gemini", "replicate", "together", "grok", "ideogram", "custom", "photoroom", "fal", "anthropic",
+];
+
 fn snapshot(config: &Config) -> Value {
-    let order = ["openai", "gemini", "replicate", "together", "grok", "ideogram", "photoroom", "fal", "anthropic"];
-    let providers: Vec<Value> = order
+    let providers: Vec<Value> = UI_ORDER
         .iter()
         .map(|name| {
             let entry = config.provider(name);
@@ -87,6 +91,7 @@ fn snapshot(config: &Config) -> Value {
                 "model": entry.map(|p| p.model.clone()).unwrap_or_default(),
                 "editModel": entry.map(|p| p.edit_model.clone()).unwrap_or_default(),
                 "baseUrl": entry.map(|p| p.base_url.clone()).unwrap_or_default(),
+                "format": entry.map(|p| p.format.clone()).unwrap_or_default(),
             })
         })
         .collect();
@@ -146,6 +151,8 @@ struct ProviderPatch {
     edit_model: Option<String>,
     #[serde(default)]
     base_url: Option<String>,
+    #[serde(default)]
+    format: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -201,6 +208,9 @@ async fn write_config(State(state): State<AppState>, Json(patch): Json<ConfigPat
         if let Some(base) = patch.base_url {
             entry.base_url = base.trim().to_string();
         }
+        if let Some(format) = patch.format {
+            entry.format = format.trim().to_string();
+        }
     }
 
     if let Err(err) = next.save() {
@@ -233,14 +243,27 @@ async fn test_provider(
         .api_key
         .filter(|k| !k.trim().is_empty())
         .unwrap_or(stored.api_key);
-    if key.trim().is_empty() {
-        return Json(json!({ "ok": false, "error": "尚未填写 API Key" }));
-    }
     let model = body.model.filter(|m| !m.trim().is_empty()).unwrap_or(stored.model);
     let base = body
         .base_url
         .filter(|b| !b.trim().is_empty())
-        .map(|b| b.trim_end_matches('/').to_string());
+        .map(|b| b.trim_end_matches('/').to_string())
+        .or_else(|| Some(stored.base_url).filter(|b| !b.trim().is_empty()));
+
+    if name == crate::config::CUSTOM_PROVIDER {
+        let Some(base) = base else {
+            return Json(json!({ "ok": false, "error": "请先填写接口地址" }));
+        };
+        let result = crate::custom::probe(&key, &base).await;
+        return Json(match result {
+            Ok(detail) => json!({ "ok": true, "detail": detail }),
+            Err(error) => json!({ "ok": false, "error": error }),
+        });
+    }
+
+    if key.trim().is_empty() {
+        return Json(json!({ "ok": false, "error": "尚未填写 API Key" }));
+    }
 
     let result = match name.as_str() {
         "openai" => probe_openai(&key, &model, base.as_deref()).await,
@@ -374,5 +397,19 @@ fn friendly_net_error(err: &reqwest::Error) -> String {
         "无法建立连接，检查网络或代理".to_string()
     } else {
         err.to_string()
+    }
+}
+
+async fn install_status() -> Json<Value> {
+    Json(crate::install::status())
+}
+
+/// Registration writes outside the app's own files, so keep it to a
+/// deliberate POST from the loopback page.
+async fn install_register() -> Json<Value> {
+    match tokio::task::spawn_blocking(|| crate::install::register("user", false)).await {
+        Ok(Ok(outcome)) => Json(json!({ "ok": true, "detail": outcome.detail, "target": outcome.target })),
+        Ok(Err(err)) => Json(json!({ "ok": false, "error": err.to_string() })),
+        Err(err) => Json(json!({ "ok": false, "error": err.to_string() })),
     }
 }
