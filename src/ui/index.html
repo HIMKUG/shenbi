@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark light" />
+<title>神笔 · 配置</title>
+<style>
+  :root {
+    --bg: #0b0b0c;
+    --surface: #111113;
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.18);
+    --fg: #f2f2f3;
+    --muted: #85858d;
+    --dim: #5c5c64;
+    --accent: #ccf24b;
+    --accent-ink: #10130a;
+    --danger: #ff7a6b;
+    --ok: #ccf24b;
+    --radius: 10px;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, monospace;
+    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #fbfbf9;
+      --surface: #ffffff;
+      --line: rgba(0, 0, 0, 0.1);
+      --line-strong: rgba(0, 0, 0, 0.22);
+      --fg: #131314;
+      --muted: #6b6b72;
+      --dim: #9a9aa1;
+      --accent: #46650a;
+      --accent-ink: #f7ffe6;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font: 15px/1.55 var(--sans);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  .shell {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 0 28px 140px;
+  }
+
+  /* top bar */
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 26px 0 22px;
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(14px);
+    z-index: 5;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; font-weight: 600; letter-spacing: -0.02em; }
+  .brand b { font-size: 19px; }
+  .brand span { color: var(--dim); font: 400 12px/1 var(--mono); letter-spacing: 0.04em; }
+  .state { font: 400 12px/1 var(--mono); color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .state .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); }
+  .state[data-dirty="true"] .pip { background: var(--accent); }
+
+  /* sections */
+  section { padding: 38px 0 8px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+  h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
+  .hint { color: var(--dim); font-size: 12.5px; margin: 0 0 4px; }
+
+  /* provider list */
+  .providers { border-top: 1px solid var(--line); }
+  .provider { border-bottom: 1px solid var(--line); }
+  .p-head {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 8px 1fr auto 14px;
+    align-items: center;
+    gap: 14px;
+    padding: 15px 2px;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+  .p-head:hover .p-name { color: var(--fg); }
+  .p-head:hover .chev { opacity: 1; transform: translateX(1px); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); transition: background 0.2s; }
+  .provider[data-configured="true"] .dot { background: var(--accent); }
+  .provider[data-test="ok"] .dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+  .provider[data-test="fail"] .dot { background: var(--danger); }
+  .p-name { font-weight: 500; color: var(--muted); transition: color 0.15s; }
+  .provider[data-configured="true"] .p-name { color: var(--fg); }
+  .p-meta { font: 400 12px/1 var(--mono); color: var(--dim); }
+  .chev { color: var(--dim); opacity: 0.45; transition: transform 0.18s, opacity 0.18s; font-size: 11px; }
+  .provider[data-open="true"] .chev { transform: rotate(90deg); }
+
+  .p-body {
+    display: none;
+    padding: 2px 2px 20px 22px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .provider[data-open="true"] .p-body { display: grid; }
+  .field { display: grid; gap: 6px; }
+  .field > label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
+  .field > label .opt { color: var(--dim); font: 400 11px/1 var(--mono); }
+  input[type="text"], input[type="password"], input[type="number"], select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--fg);
+    font: 400 13.5px/1.4 var(--mono);
+    padding: 9px 11px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  select { font-family: var(--sans); }
+  input:hover, select:hover { border-color: var(--line-strong); }
+  input:focus, select:focus { outline: none; border-color: var(--accent); background: color-mix(in srgb, var(--surface) 70%, var(--bg)); }
+  input::placeholder { color: var(--dim); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .p-actions { display: flex; align-items: center; gap: 12px; padding-top: 2px; }
+  .probe { font: 400 12px/1.4 var(--mono); color: var(--muted); min-height: 1em; }
+  .probe[data-kind="ok"] { color: var(--ok); }
+  .probe[data-kind="fail"] { color: var(--danger); }
+
+  button {
+    font: 500 13px/1 var(--sans);
+    color: var(--fg);
+    background: transparent;
+    border: 1px solid var(--line-strong);
+    border-radius: 7px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+  }
+  button:hover:not(:disabled) { border-color: var(--fg); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+  button.quiet { border-color: transparent; color: var(--muted); padding: 8px 8px; }
+  button.quiet:hover { color: var(--fg); border-color: transparent; }
+
+  /* defaults */
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
+  details.adv { margin-top: 18px; }
+  details.adv summary {
+    cursor: pointer;
+    font-size: 12.5px;
+    color: var(--dim);
+    list-style: none;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 0;
+  }
+  details.adv summary::-webkit-details-marker { display: none; }
+  details.adv summary::before { content: "+"; font-family: var(--mono); }
+  details.adv[open] summary::before { content: "–"; }
+  details.adv .grid3 { margin-top: 14px; }
+
+  /* mcp */
+  .snippet {
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 16px 16px;
+    overflow: auto;
+  }
+  .snippet pre { margin: 0; font: 400 12.5px/1.6 var(--mono); color: var(--muted); white-space: pre; }
+  .snippet .copy { position: absolute; top: 8px; right: 8px; }
+
+  /* save bar */
+  .bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    border-top: 1px solid var(--line);
+    background: color-mix(in srgb, var(--bg) 90%, transparent);
+    backdrop-filter: blur(14px);
+    z-index: 6;
+  }
+  .bar-inner {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .bar-msg { font: 400 12.5px/1.4 var(--mono); color: var(--muted); }
+  .bar-msg[data-kind="fail"] { color: var(--danger); }
+  .bar-msg[data-kind="ok"] { color: var(--ok); }
+  .bar-actions { display: flex; gap: 8px; align-items: center; }
+  kbd {
+    font: 400 11px/1 var(--mono);
+    color: var(--dim);
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 3px 5px;
+  }
+  @media (max-width: 620px) {
+    .shell { padding: 0 18px 150px; }
+    .row, .grid3 { grid-template-columns: 1fr; }
+    .p-meta { display: none; }
+    h2 { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand"><b>神笔</b><span>image mcp</span></div>
+    <div class="state" id="state" data-dirty="false"><span class="pip"></span><span id="state-text">未修改</span></div>
+  </header>
+
+  <section aria-labelledby="h-providers">
+    <div class="sec-head">
+      <h2 id="h-providers">服务商</h2>
+      <span class="hint" id="provider-count"></span>
+    </div>
+    <div class="providers" id="providers"></div>
+  </section>
+
+  <section aria-labelledby="h-defaults">
+    <div class="sec-head"><h2 id="h-defaults">默认设置</h2></div>
+    <div class="grid3">
+      <div class="field">
+        <label for="defaultProvider">默认服务商</label>
+        <select id="defaultProvider" data-default="defaultProvider"></select>
+      </div>
+      <div class="field">
+        <label for="outputDir">输出目录</label>
+        <input id="outputDir" type="text" data-default="outputDir" spellcheck="false" />
+      </div>
+    </div>
+    <details class="adv">
+      <summary>高级</summary>
+      <div class="grid3">
+        <div class="field">
+          <label for="maxConcurrent">批量并发<span class="opt">1–8</span></label>
+          <input id="maxConcurrent" type="number" min="1" max="8" data-default="maxConcurrent" />
+        </div>
+        <div class="field">
+          <label for="runRetentionHours">任务记录保留<span class="opt">小时</span></label>
+          <input id="runRetentionHours" type="number" min="0" max="720" data-default="runRetentionHours" />
+        </div>
+        <div class="field">
+          <label for="inputRoot">输入白名单目录<span class="opt">可留空</span></label>
+          <input id="inputRoot" type="text" data-default="inputRoot" spellcheck="false" placeholder="限制可读取的图片路径" />
+        </div>
+        <div class="field">
+          <label for="requestTimeoutMs">请求超时<span class="opt">毫秒</span></label>
+          <input id="requestTimeoutMs" type="number" min="5000" max="600000" step="1000" data-default="requestTimeoutMs" />
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section aria-labelledby="h-mcp">
+    <div class="sec-head"><h2 id="h-mcp">接入 Claude Code</h2></div>
+    <p class="hint">把下面配置写入项目的 <code>.mcp.json</code>。</p>
+    <div class="snippet">
+      <button class="quiet copy" id="copy-mcp" type="button">复制</button>
+      <pre id="mcp-snippet"></pre>
+    </div>
+  </section>
+</div>
+
+<div class="bar">
+  <div class="bar-inner">
+    <div class="bar-msg" id="bar-msg">　</div>
+    <div class="bar-actions">
+      <kbd id="save-key">Ctrl S</kbd>
+      <button type="button" id="revert" disabled>还原</button>
+      <button type="button" class="primary" id="save" disabled>保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const LABELS = {
+    openai: "OpenAI",
+    gemini: "Google Gemini",
+    replicate: "Replicate",
+    together: "Together AI",
+    grok: "xAI Grok",
+    ideogram: "Ideogram",
+    photoroom: "Photoroom",
+    fal: "fal.ai",
+    anthropic: "Anthropic",
+  };
+  const ORDER = ["openai", "gemini", "replicate", "together", "grok", "ideogram", "photoroom", "fal", "anthropic"];
+  const TESTABLE = new Set(["openai", "gemini", "replicate", "together", "grok", "anthropic"]);
+
+  let state = null;
+  let dirty = false;
+  const el = (id) => document.getElementById(id);
+  const slug = (name) => name;
+
+  function isMac() { return /Mac|iPhone|iPad/.test(navigator.platform); }
+  el("save-key").textContent = isMac() ? "⌘ S" : "Ctrl S";
+
+  function setDirty(value) {
+    dirty = value;
+    el("state").dataset.dirty = value ? "true" : "false";
+    if (value) el("state-text").textContent = "未保存";
+    el("save").disabled = !value;
+    el("revert").disabled = !value;
+  }
+
+  function say(text, kind) {
+    const node = el("bar-msg");
+    node.textContent = text;
+    node.dataset.kind = kind || "";
+  }
+
+  function providerRow(name, p) {
+    const wrap = document.createElement("div");
+    wrap.className = "provider";
+    wrap.dataset.name = name;
+    wrap.dataset.configured = p.configured ? "true" : "false";
+    wrap.innerHTML = `
+      <button class="p-head" type="button" aria-expanded="false">
+        <span class="dot"></span>
+        <span class="p-name">${LABELS[name] || name}</span>
+        <span class="p-meta"></span>
+        <span class="chev">▶</span>
+      </button>
+      <div class="p-body">
+        <div class="field">
+          <label>API Key<span class="opt"></span></label>
+          <input type="password" data-field="apiKey" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="row">
+          <div class="field">
+            <label>模型</label>
+            <input type="text" data-field="model" spellcheck="false" />
+          </div>
+          ${name === "openai" ? `
+          <div class="field">
+            <label>编辑模型<span class="opt">参考图 / 改图</span></label>
+            <input type="text" data-field="editModel" spellcheck="false" />
+          </div>` : `
+          <div class="field">
+            <label>Base URL<span class="opt">可选</span></label>
+            <input type="text" data-field="baseUrl" spellcheck="false" placeholder="默认官方地址" />
+          </div>`}
+        </div>
+        <div class="p-actions">
+          ${TESTABLE.has(name) ? `<button type="button" class="quiet test">测试连接</button>` : ""}
+          <span class="probe" role="status"></span>
+        </div>
+      </div>`;
+
+    const head = wrap.querySelector(".p-head");
+    const meta = wrap.querySelector(".p-meta");
+    const keyInput = wrap.querySelector('[data-field="apiKey"]');
+    const modelInput = wrap.querySelector('[data-field="model"]');
+    const optNote = wrap.querySelector(".field .opt");
+
+    const renderMeta = () => {
+      meta.textContent = p.configured ? (modelInput.value || "已保存") : "未配置";
+      wrap.dataset.configured = p.configured ? "true" : "false";
+      optNote.textContent = p.configured ? "已保存 · 留空不修改" : "";
+    };
+
+    if (p.configured) {
+      keyInput.placeholder = "•••••••••••• 已保存";
+    } else {
+      keyInput.placeholder = "粘贴 API Key";
+    }
+    modelInput.value = p.model || "";
+    wrap.querySelector('[data-field="editModel"]')?.setAttribute("value", p.editModel || "");
+    const editInput = wrap.querySelector('[data-field="editModel"]');
+    if (editInput) editInput.value = p.editModel || "";
+    const baseInput = wrap.querySelector('[data-field="baseUrl"]');
+    if (baseInput) baseInput.value = p.baseUrl || "";
+
+    renderMeta();
+
+    head.addEventListener("click", () => {
+      const open = wrap.dataset.open === "true";
+      wrap.dataset.open = open ? "false" : "true";
+      head.setAttribute("aria-expanded", open ? "false" : "true");
+      if (!open && !p.configured) setTimeout(() => keyInput.focus(), 20);
+    });
+
+    keyInput.addEventListener("input", () => {
+      markDirty();
+      if (!p.configured && keyInput.value.trim()) {
+        wrap.dataset.configured = "true";
+        meta.textContent = modelInput.value || "待保存";
+      }
+    });
+    modelInput.addEventListener("input", () => {
+      markDirty();
+      if (!p.configured) meta.textContent = modelInput.value || "未配置";
+      else meta.textContent = modelInput.value || "已保存";
+    });
+    editInput?.addEventListener("input", markDirty);
+    baseInput?.addEventListener("input", markDirty);
+
+    const testBtn = wrap.querySelector(".test");
+    const probe = wrap.querySelector(".probe");
+    testBtn?.addEventListener("click", async () => {
+      probe.dataset.kind = "";
+      probe.textContent = "测试中…";
+      testBtn.disabled = true;
+      try {
+        const key = keyInput.value.trim();
+        const response = await fetch(`/api/providers/${slug(name)}/test`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            apiKey: key || null,
+            model: modelInput.value.trim() || null,
+            baseUrl: baseInput ? baseInput.value.trim() || null : null,
+          }),
+        });
+        const body = await response.json();
+        if (body.ok) {
+          probe.dataset.kind = "ok";
+          probe.textContent = body.detail || "连接正常";
+          wrap.dataset.test = "ok";
+        } else {
+          probe.dataset.kind = "fail";
+          probe.textContent = body.error || "连接失败";
+          wrap.dataset.test = "fail";
+        }
+      } catch (err) {
+        probe.dataset.kind = "fail";
+        probe.textContent = "无法访问本地服务";
+      } finally {
+        testBtn.disabled = false;
+      }
+    });
+
+    return wrap;
+  }
+
+  function markDirty() {
+    setDirty(true);
+    say("有未保存的修改");
+  }
+
+  function render() {
+    const list = el("providers");
+    const open = new Set(
+      [...list.querySelectorAll('.provider[data-open="true"]')].map((node) => node.dataset.name)
+    );
+    list.innerHTML = "";
+    for (const name of ORDER) {
+      const p = state.providers.find((item) => item.name === name) || { name, configured: false };
+      const row = providerRow(name, p);
+      if (open.has(name)) {
+        row.dataset.open = "true";
+        row.querySelector(".p-head").setAttribute("aria-expanded", "true");
+      }
+      list.appendChild(row);
+    }
+    const configured = state.providers.filter((p) => p.configured).length;
+    el("provider-count").textContent = `${configured} / ${ORDER.length} 已启用`;
+
+    const select = el("defaultProvider");
+    select.innerHTML = "";
+    for (const name of ORDER) {
+      const p = state.providers.find((item) => item.name === name);
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = (LABELS[name] || name) + (p && p.configured ? "" : "（未配置）");
+      select.appendChild(option);
+    }
+    select.value = state.defaultProvider || "openai";
+
+    for (const node of document.querySelectorAll("[data-default]")) {
+      if (node.tagName === "SELECT") continue;
+      node.value = state[node.dataset.default] ?? "";
+    }
+    el("mcp-snippet").textContent = JSON.stringify(state.mcp, null, 2);
+    setDirty(false);
+    say("　");
+    el("state-text").textContent = state.savedAt ? `已保存 ${state.savedAt}` : "尚未保存";
+  }
+
+  // Static controls keep their listeners; only the provider rows re-render.
+  el("defaultProvider").addEventListener("change", markDirty);
+  for (const node of document.querySelectorAll("[data-default]")) {
+    if (node.tagName === "SELECT") continue;
+    node.addEventListener("input", markDirty);
+  }
+
+  async function load() {
+    const response = await fetch("/api/config");
+    state = await response.json();
+    render();
+  }
+
+  function collect() {
+    const providers = {};
+    for (const wrap of document.querySelectorAll(".provider")) {
+      const name = wrap.dataset.name;
+      const read = (field) => wrap.querySelector(`[data-field="${field}"]`);
+      const key = read("apiKey").value.trim();
+      const entry = { model: read("model").value.trim() };
+      const edit = read("editModel");
+      if (edit) entry.editModel = edit.value.trim();
+      const base = read("baseUrl");
+      if (base) entry.baseUrl = base.value.trim();
+      if (key) entry.apiKey = key;
+      providers[name] = entry;
+    }
+    return {
+      defaultProvider: el("defaultProvider").value,
+      outputDir: el("outputDir").value.trim(),
+      inputRoot: el("inputRoot").value.trim(),
+      runRetentionHours: Number(el("runRetentionHours").value || 24),
+      maxConcurrent: Number(el("maxConcurrent").value || 3),
+      requestTimeoutMs: Number(el("requestTimeoutMs").value || 300000),
+      providers,
+    };
+  }
+
+  async function save() {
+    const button = el("save");
+    button.disabled = true;
+    say("保存中…");
+    try {
+      const response = await fetch("/api/config", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(collect()),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        say(body.error || "保存失败", "fail");
+        button.disabled = false;
+        return;
+      }
+      state = body;
+      render();
+      el("state-text").textContent = state.savedAt ? `已保存 ${state.savedAt}` : "尚未保存";
+      say("已保存", "ok");
+    } catch (err) {
+      say("无法访问本地服务", "fail");
+      button.disabled = false;
+    }
+  }
+
+  el("save").addEventListener("click", save);
+  el("revert").addEventListener("click", async () => {
+    await load();
+    el("state-text").textContent = state.savedAt ? `已保存 ${state.savedAt}` : "尚未保存";
+  });
+  el("copy-mcp").addEventListener("click", async (event) => {
+    try {
+      await navigator.clipboard.writeText(el("mcp-snippet").textContent);
+      event.target.textContent = "已复制";
+      setTimeout(() => (event.target.textContent = "复制"), 1400);
+    } catch {
+      event.target.textContent = "复制失败";
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      if (dirty) save();
+    }
+  });
+  window.addEventListener("beforeunload", (event) => {
+    if (dirty) event.preventDefault();
+  });
+
+  load().catch(() => say("无法加载配置", "fail"));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+/target
+/.upstream
+/lanvault_vendor
+/.tmp-*
+*.tmp
+/.claude
