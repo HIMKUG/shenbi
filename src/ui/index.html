@@ -7,55 +7,69 @@
 <title>神笔 · 配置</title>
 <style>
   :root {
+    color-scheme: dark;
     --bg: #0b0b0c;
-    --surface: #111113;
-    --line: rgba(255, 255, 255, 0.09);
-    --line-strong: rgba(255, 255, 255, 0.18);
+    --surface: #16161a;
+    --surface-2: #1d1d22;
+    --line: rgba(255, 255, 255, 0.16);
+    --line-strong: rgba(255, 255, 255, 0.34);
     --fg: #f2f2f3;
-    --muted: #85858d;
-    --dim: #5c5c64;
+    --muted: #a6a6b0;
+    --dim: #8b8b96;
     --accent: #ccf24b;
+    --accent-hover: #d9fb6a;
     --accent-ink: #10130a;
-    --danger: #ff7a6b;
-    --ok: #ccf24b;
+    --danger: #ff9d90;
+    --ok: #b9f27b;
     --radius: 10px;
+    --control: 40px;
     --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, monospace;
-    --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
       "Microsoft YaHei", sans-serif;
   }
   @media (prefers-color-scheme: light) {
     :root {
+      color-scheme: light;
       --bg: #fbfbf9;
       --surface: #ffffff;
-      --line: rgba(0, 0, 0, 0.1);
-      --line-strong: rgba(0, 0, 0, 0.22);
+      --surface-2: #f2f2ee;
+      --line: rgba(0, 0, 0, 0.22);
+      --line-strong: rgba(0, 0, 0, 0.45);
       --fg: #131314;
-      --muted: #6b6b72;
-      --dim: #9a9aa1;
+      --muted: #56565e;
+      --dim: #5f5f67;
       --accent: #46650a;
+      --accent-hover: #385203;
       --accent-ink: #f7ffe6;
+      --danger: #a02010;
+      --ok: #2f6b00;
     }
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
+  html { scroll-padding-top: 96px; }
   body {
     background: var(--bg);
     color: var(--fg);
-    font: 15px/1.55 var(--sans);
+    font: 15px/1.6 var(--sans);
     -webkit-font-smoothing: antialiased;
-    letter-spacing: -0.005em;
+    text-rendering: optimizeLegibility;
   }
   ::selection { background: var(--accent); color: var(--accent-ink); }
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-    border-radius: 4px;
+  }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
   }
   .shell {
-    max-width: 780px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 0 28px 140px;
+    padding: 0 28px 96px;
   }
+  main { display: block; }
 
   /* top bar */
   .top {
@@ -63,26 +77,28 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    padding: 26px 0 22px;
+    padding: 18px 0 16px;
     border-bottom: 1px solid var(--line);
     position: sticky;
     top: 0;
-    background: color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: blur(14px);
+    background: var(--bg);
     z-index: 5;
   }
-  .brand { display: flex; align-items: baseline; gap: 10px; font-weight: 600; letter-spacing: -0.02em; }
-  .brand b { font-size: 19px; }
-  .brand span { color: var(--dim); font: 400 12px/1 var(--mono); letter-spacing: 0.04em; }
-  .state { font: 400 12px/1 var(--mono); color: var(--muted); display: flex; align-items: center; gap: 8px; }
-  .state .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--dim); }
+  @supports (background: color-mix(in srgb, white 50%, black)) {
+    .top, .bar { background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(12px); }
+  }
+  h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin: 0; display: flex; align-items: baseline; gap: 10px; }
+  h1 .sub { color: var(--muted); font: 400 12px/1 var(--mono); letter-spacing: 0.04em; }
+  .state { font: 400 12px/1.4 var(--mono); color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .state .pip { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); flex: none; }
   .state[data-dirty="true"] .pip { background: var(--accent); }
 
   /* sections */
-  section { padding: 38px 0 8px; }
-  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
-  h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0; }
-  .hint { color: var(--dim); font-size: 12.5px; margin: 0 0 4px; }
+  section { padding: 32px 0 0; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; color: var(--fg); margin: 0; }
+  .hint { color: var(--muted); font-size: 12px; margin: 0 0 6px; }
+  .count { font: 400 12px/1 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 
   /* provider list */
   .providers { border-top: 1px solid var(--line); }
@@ -95,49 +111,60 @@
     grid-template-columns: 8px 1fr auto 14px;
     align-items: center;
     gap: 14px;
-    padding: 15px 2px;
+    padding: 14px 2px;
+    min-height: var(--control);
     cursor: pointer;
     border-radius: 6px;
   }
-  .p-head:hover .p-name { color: var(--fg); }
-  .p-head:hover .chev { opacity: 1; transform: translateX(1px); }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); transition: background 0.2s; }
-  .provider[data-configured="true"] .dot { background: var(--accent); }
-  .provider[data-test="ok"] .dot { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+  .p-head:hover { background: var(--surface-2); }
+  .p-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); transition: background 0.2s; }
+  .provider[data-configured="true"] .dot { background: var(--ok); }
+  .provider[data-test="ok"] .dot { background: var(--ok); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ok); }
   .provider[data-test="fail"] .dot { background: var(--danger); }
-  .p-name { font-weight: 500; color: var(--muted); transition: color 0.15s; }
-  .provider[data-configured="true"] .p-name { color: var(--fg); }
-  .p-meta { font: 400 12px/1 var(--mono); color: var(--dim); }
-  .chev { color: var(--dim); opacity: 0.45; transition: transform 0.18s, opacity 0.18s; font-size: 11px; }
+  .p-name { font-weight: 500; color: var(--fg); }
+  .p-meta { font: 400 12px/1.4 var(--mono); color: var(--muted); max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chev { color: var(--muted); font-size: 11px; display: inline-block; transition: transform 0.18s; }
   .provider[data-open="true"] .chev { transform: rotate(90deg); }
 
   .p-body {
     display: none;
-    padding: 2px 2px 20px 22px;
+    padding: 4px 2px 20px 24px;
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 14px;
   }
   .provider[data-open="true"] .p-body { display: grid; }
   .field { display: grid; gap: 6px; }
-  .field > label { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
-  .field > label .opt { color: var(--dim); font: 400 11px/1 var(--mono); }
+  .field > label { font-size: 12.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
+  .field > label .opt { color: var(--dim); font: 400 11.5px/1.4 var(--mono); }
   input[type="text"], input[type="password"], input[type="number"], select {
     width: 100%;
+    min-height: var(--control);
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 8px;
     color: var(--fg);
-    font: 400 13.5px/1.4 var(--mono);
+    font: 400 13.5px/1.5 var(--mono);
     padding: 9px 11px;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.15s;
   }
   select { font-family: var(--sans); }
   input:hover, select:hover { border-color: var(--line-strong); }
-  input:focus, select:focus { outline: none; border-color: var(--accent); background: color-mix(in srgb, var(--surface) 70%, var(--bg)); }
-  input::placeholder { color: var(--dim); }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .p-actions { display: flex; align-items: center; gap: 12px; padding-top: 2px; }
-  .probe { font: 400 12px/1.4 var(--mono); color: var(--muted); min-height: 1em; }
+  input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-color: var(--accent);
+  }
+  input::placeholder { color: var(--dim); opacity: 1; }
+  input[aria-invalid="true"] { border-color: var(--danger); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .p-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 4px; }
+  .probe {
+    font: 400 12.5px/1.5 var(--mono);
+    color: var(--muted);
+    flex: 1 1 100%;
+    min-height: 1.5em;
+  }
   .probe[data-kind="ok"] { color: var(--ok); }
   .probe[data-kind="fail"] { color: var(--danger); }
 
@@ -147,171 +174,192 @@
     background: transparent;
     border: 1px solid var(--line-strong);
     border-radius: 7px;
-    padding: 8px 14px;
+    min-height: 36px;
+    padding: 0 14px;
     cursor: pointer;
-    transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
   }
   button:hover:not(:disabled) { border-color: var(--fg); }
-  button:disabled { opacity: 0.4; cursor: default; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { border-color: var(--line); color: var(--dim); cursor: not-allowed; }
   button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 600; }
-  button.primary:hover:not(:disabled) { filter: brightness(1.08); }
-  button.quiet { border-color: transparent; color: var(--muted); padding: 8px 8px; }
-  button.quiet:hover { color: var(--fg); border-color: transparent; }
+  button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: transparent; }
+  button.primary:disabled { background: var(--surface-2); color: var(--dim); border-color: var(--line); }
+  button.quiet { border-color: transparent; color: var(--muted); padding: 0 8px; }
+  button.quiet:hover:not(:disabled) { color: var(--fg); border-color: transparent; background: var(--surface-2); }
 
   /* defaults */
-  .grid3 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 18px; }
-  details.adv { margin-top: 18px; }
-  details.adv summary {
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  details.adv, details.manual { margin-top: 18px; }
+  details summary {
     cursor: pointer;
-    font-size: 12.5px;
-    color: var(--dim);
+    font-size: 13px;
+    color: var(--muted);
     list-style: none;
     display: inline-flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
-    padding: 4px 0;
+    padding: 8px 0;
+    min-height: 36px;
   }
-  details.adv summary::-webkit-details-marker { display: none; }
-  details.adv summary::before { content: "+"; font-family: var(--mono); }
-  details.adv[open] summary::before { content: "–"; }
-  details.adv .grid3 { margin-top: 14px; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "+"; font-family: var(--mono); color: var(--dim); }
+  details[open] > summary::before { content: "–"; }
+  details summary:hover { color: var(--fg); }
+  details.adv .grid2 { margin-top: 12px; }
 
   /* mcp */
-  .install-row { display: flex; align-items: center; gap: 14px; padding: 4px 0 14px; }
-  details.manual summary {
-    cursor: pointer;
-    font-size: 12.5px;
-    color: var(--dim);
-    list-style: none;
-    display: inline-flex;
-    gap: 6px;
-    align-items: center;
-    padding: 2px 0 12px;
-  }
-  details.manual summary::-webkit-details-marker { display: none; }
-  details.manual summary::before { content: "+"; font-family: var(--mono); }
-  details.manual[open] summary::before { content: "–"; }
+  .install-row { display: grid; gap: 8px; padding: 4px 0 12px; }
   .snippet {
     position: relative;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--surface);
-    padding: 16px 16px;
-    overflow: auto;
+    padding: 16px;
   }
-  .snippet pre { margin: 0; font: 400 12.5px/1.6 var(--mono); color: var(--muted); white-space: pre; }
-  .snippet .copy { position: absolute; top: 8px; right: 8px; }
+  .snippet pre {
+    margin: 0;
+    font: 400 12.5px/1.65 var(--mono);
+    color: var(--muted);
+    white-space: pre;
+    overflow: auto;
+    padding-right: 64px;
+  }
+  .snippet .copy { position: absolute; top: 8px; right: 8px; min-height: 32px; }
 
   /* save bar */
   .bar {
     position: fixed;
     left: 0; right: 0; bottom: 0;
     border-top: 1px solid var(--line);
-    background: color-mix(in srgb, var(--bg) 90%, transparent);
-    backdrop-filter: blur(14px);
+    background: var(--bg);
     z-index: 6;
   }
   .bar-inner {
-    max-width: 780px;
+    max-width: 720px;
     margin: 0 auto;
-    padding: 14px 28px;
+    padding: 12px 28px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
   }
-  .bar-msg { font: 400 12.5px/1.4 var(--mono); color: var(--muted); }
+  .bar-msg { font: 400 12.5px/1.45 var(--mono); color: var(--muted); min-height: 1.45em; }
   .bar-msg[data-kind="fail"] { color: var(--danger); }
   .bar-msg[data-kind="ok"] { color: var(--ok); }
   .bar-actions { display: flex; gap: 8px; align-items: center; }
   kbd {
-    font: 400 11px/1 var(--mono);
-    color: var(--dim);
+    font: 400 11.5px/1 var(--mono);
+    color: var(--muted);
     border: 1px solid var(--line);
     border-bottom-width: 2px;
     border-radius: 4px;
-    padding: 3px 5px;
+    padding: 4px 6px;
   }
-  @media (max-width: 620px) {
-    .shell { padding: 0 18px 150px; }
-    .row, .grid3 { grid-template-columns: 1fr; }
-    .p-meta { display: none; }
-    h2 { font-size: 12px; }
+  .page-error {
+    border: 1px solid var(--danger);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-top: 28px;
+    display: grid;
+    gap: 10px;
+  }
+  .page-error p { margin: 0; color: var(--muted); font-size: 13px; }
+  [hidden] { display: none !important; }
+  @media (max-width: 700px) {
+    .shell { padding: 0 18px 108px; }
+    .row, .grid2 { grid-template-columns: 1fr; }
+    .bar-inner { padding: 10px 18px; flex-wrap: wrap; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
   }
 </style>
 </head>
 <body>
+<a class="sr-only" href="#main">跳到内容</a>
 <div class="shell">
   <header class="top">
-    <div class="brand"><b>神笔</b><span>image mcp</span></div>
-    <div class="state" id="state" data-dirty="false"><span class="pip"></span><span id="state-text">未修改</span></div>
+    <h1>神笔 <span class="sub">图像生成 MCP</span></h1>
+    <div class="state" data-dirty="false"><span class="pip" aria-hidden="true"></span><span id="state-text" role="status">读取中…</span></div>
   </header>
 
-  <section aria-labelledby="h-providers">
-    <div class="sec-head">
-      <h2 id="h-providers">服务商</h2>
-      <span class="hint" id="provider-count"></span>
+  <main id="main">
+    <div class="page-error" id="page-error" hidden>
+      <strong>读不到配置</strong>
+      <p id="page-error-detail"></p>
+      <div><button type="button" id="retry">重新读取</button></div>
     </div>
-    <div class="providers" id="providers"></div>
-  </section>
 
-  <section aria-labelledby="h-defaults">
-    <div class="sec-head"><h2 id="h-defaults">默认设置</h2></div>
-    <div class="grid3">
-      <div class="field">
-        <label for="defaultProvider">默认服务商</label>
-        <select id="defaultProvider" data-default="defaultProvider"></select>
+    <section aria-labelledby="h-providers">
+      <div class="sec-head">
+        <h2 id="h-providers">服务商</h2>
+        <span class="count" id="provider-count"></span>
       </div>
-      <div class="field">
-        <label for="outputDir">输出目录</label>
-        <input id="outputDir" type="text" data-default="outputDir" spellcheck="false" />
-      </div>
-    </div>
-    <details class="adv">
-      <summary>高级</summary>
-      <div class="grid3">
-        <div class="field">
-          <label for="maxConcurrent">批量并发<span class="opt">1–8</span></label>
-          <input id="maxConcurrent" type="number" min="1" max="8" data-default="maxConcurrent" />
-        </div>
-        <div class="field">
-          <label for="runRetentionHours">任务记录保留<span class="opt">小时</span></label>
-          <input id="runRetentionHours" type="number" min="0" max="720" data-default="runRetentionHours" />
-        </div>
-        <div class="field">
-          <label for="inputRoot">输入白名单目录<span class="opt">可留空</span></label>
-          <input id="inputRoot" type="text" data-default="inputRoot" spellcheck="false" placeholder="限制可读取的图片路径" />
-        </div>
-        <div class="field">
-          <label for="requestTimeoutMs">请求超时<span class="opt">毫秒</span></label>
-          <input id="requestTimeoutMs" type="number" min="5000" max="600000" step="1000" data-default="requestTimeoutMs" />
-        </div>
-      </div>
-    </details>
-  </section>
+      <p class="hint">填入 API Key 后点「测试连接」确认可用，再按 Ctrl S 保存。</p>
+      <div class="providers" id="providers" aria-busy="true"></div>
+    </section>
 
-  <section aria-labelledby="h-mcp">
-    <div class="sec-head"><h2 id="h-mcp">接入 AI 客户端</h2></div>
-    <div class="install-row">
-      <button type="button" class="primary" id="install-mcp">一键注册</button>
-      <span class="probe" id="install-status" role="status"></span>
-    </div>
-    <details class="manual">
-      <summary>手动配置</summary>
-      <div class="snippet">
-        <button class="quiet copy" id="copy-mcp" type="button">复制</button>
-        <pre id="mcp-snippet"></pre>
+    <section aria-labelledby="h-defaults">
+      <div class="sec-head"><h2 id="h-defaults">默认设置</h2></div>
+      <div class="grid2">
+        <div class="field">
+          <label for="defaultProvider">默认服务商<span class="opt">生成时未指定就用它</span></label>
+          <select id="defaultProvider" data-default="defaultProvider"></select>
+        </div>
+        <div class="field">
+          <label for="outputDir">图片保存目录<span class="opt">支持 ~</span></label>
+          <input id="outputDir" type="text" data-default="outputDir" spellcheck="false" autocomplete="off" aria-describedby="outputDir-hint" />
+          <span class="sr-only" id="outputDir-hint">生成的图片写入这个目录，任务记录放在其中的 .runs 子目录</span>
+        </div>
       </div>
-    </details>
-  </section>
+      <details class="adv">
+        <summary>高级设置</summary>
+        <div class="grid2">
+          <div class="field">
+            <label for="maxConcurrent">同时生成张数<span class="opt">1–8</span></label>
+            <input id="maxConcurrent" type="number" inputmode="numeric" min="1" max="8" step="1" data-default="maxConcurrent" />
+          </div>
+          <div class="field">
+            <label for="runRetentionHours">任务记录保留<span class="opt">小时，0 = 不清理</span></label>
+            <input id="runRetentionHours" type="number" inputmode="numeric" min="0" max="720" step="1" data-default="runRetentionHours" />
+          </div>
+          <div class="field">
+            <label for="inputRoot">允许读取图片的目录<span class="opt">可留空</span></label>
+            <input id="inputRoot" type="text" data-default="inputRoot" spellcheck="false" autocomplete="off" placeholder="留空表示不限制" aria-describedby="inputRoot-hint" />
+            <span class="sr-only" id="inputRoot-hint">改图时只允许从这个目录读取参考图</span>
+          </div>
+          <div class="field">
+            <label for="requestTimeoutSeconds">单次请求超时<span class="opt">秒</span></label>
+            <input id="requestTimeoutSeconds" type="number" inputmode="numeric" min="5" max="600" step="5" data-default="requestTimeoutSeconds" />
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <section aria-labelledby="h-mcp">
+      <div class="sec-head"><h2 id="h-mcp">接入 AI 客户端</h2></div>
+      <div class="install-row">
+        <div><button type="button" class="primary" id="install-mcp">一键注册</button></div>
+        <span class="probe" id="install-status" role="status"></span>
+      </div>
+      <details class="manual">
+        <summary>手动配置（JSON 片段）</summary>
+        <div class="snippet">
+          <button class="quiet copy" id="copy-mcp" type="button" aria-label="复制 JSON 片段">复制</button>
+          <pre id="mcp-snippet" tabindex="0" role="region" aria-label="MCP 配置片段"></pre>
+        </div>
+      </details>
+    </section>
+  </main>
 </div>
 
 <div class="bar">
   <div class="bar-inner">
-    <div class="bar-msg" id="bar-msg">　</div>
+    <div class="bar-msg" id="bar-msg" role="status" aria-live="polite"></div>
     <div class="bar-actions">
       <kbd id="save-key">Ctrl S</kbd>
-      <button type="button" id="revert" disabled>还原</button>
+      <button type="button" id="revert" disabled>放弃修改</button>
       <button type="button" class="primary" id="save" disabled>保存</button>
     </div>
   </div>
@@ -331,23 +379,32 @@
     fal: "fal.ai",
     anthropic: "Anthropic",
   };
-  const ORDER = ["openai", "gemini", "replicate", "together", "grok", "ideogram", "custom", "photoroom", "fal", "anthropic"];
+  const ROLE = {
+    openai: "生成 · 改图",
+    gemini: "生成",
+    replicate: "生成 · 放大",
+    together: "生成",
+    grok: "生成",
+    ideogram: "生成",
+    custom: "生成（OpenAI 兼容）",
+    photoroom: "抠图 · 合成",
+    fal: "生成 · 改图",
+    anthropic: "规划（不生成图片）",
+  };
   const TESTABLE = new Set(["openai", "gemini", "replicate", "together", "grok", "anthropic", "custom"]);
 
-  let state = null;
-  let dirty = false;
   const el = (id) => document.getElementById(id);
-  const slug = (name) => name;
+  const state = { data: null, dirty: false, savedAt: 0, loaded: false, busy: false };
 
-  function isMac() { return /Mac|iPhone|iPad/.test(navigator.platform); }
+  function isMac() { return /Mac|iPhone|iPad/.test(navigator.userAgent); }
   el("save-key").textContent = isMac() ? "⌘ S" : "Ctrl S";
 
   function setDirty(value) {
-    dirty = value;
-    el("state").dataset.dirty = value ? "true" : "false";
-    if (value) el("state-text").textContent = "未保存";
-    el("save").disabled = !value;
-    el("revert").disabled = !value;
+    state.dirty = value;
+    document.querySelector(".state").dataset.dirty = value ? "true" : "false";
+    el("save").disabled = !value || state.busy;
+    el("revert").disabled = !value || state.busy;
+    renderState();
   }
 
   function say(text, kind) {
@@ -356,62 +413,81 @@
     node.dataset.kind = kind || "";
   }
 
+  function savedAgo() {
+    if (!state.savedAt) return "";
+    const secs = Math.max(0, Math.round((Date.now() - state.savedAt) / 1000));
+    if (secs < 60) return "刚刚保存";
+    if (secs < 3600) return Math.floor(secs / 60) + " 分钟前保存";
+    if (secs < 86400) return Math.floor(secs / 3600) + " 小时前保存";
+    return Math.floor(secs / 86400) + " 天前保存";
+  }
+
+  function renderState() {
+    const node = el("state-text");
+    if (!state.loaded) { node.textContent = "读取中…"; return; }
+    node.textContent = state.dirty ? "未保存的修改" : savedAgo() || "尚未保存";
+  }
+
   function providerRow(name, p) {
     const wrap = document.createElement("div");
     wrap.className = "provider";
     wrap.dataset.name = name;
     wrap.dataset.configured = p.configured ? "true" : "false";
+    const bodyId = "body-" + name;
+    const isCustom = name === "custom";
+    const hasEdit = name === "openai";
     wrap.innerHTML = `
-      <button class="p-head" type="button" aria-expanded="false">
-        <span class="dot"></span>
+      <button class="p-head" type="button" aria-expanded="false" aria-controls="${bodyId}">
+        <span class="dot" aria-hidden="true"></span>
         <span class="p-name">${LABELS[name] || name}</span>
         <span class="p-meta"></span>
-        <span class="chev">▶</span>
+        <span class="chev" aria-hidden="true">▶</span>
       </button>
-      <div class="p-body">
-        ${name === "custom" ? `
+      <div class="p-body" id="${bodyId}">
+        ${isCustom ? `
         <div class="field">
-          <label>接口地址<span class="opt">OpenAI 兼容</span></label>
-          <input type="text" data-field="baseUrl" spellcheck="false" placeholder="https://api.example.com/v1" />
+          <label for="f-${name}-baseUrl">接口地址<span class="opt">OpenAI 兼容</span></label>
+          <input id="f-${name}-baseUrl" type="text" data-field="baseUrl" spellcheck="false" autocomplete="off" placeholder="https://api.example.com/v1" />
         </div>
         <div class="field">
-          <label>API Key</label>
-          <input type="password" data-field="apiKey" autocomplete="off" spellcheck="false" />
+          <label for="f-${name}-apiKey">API 密钥</label>
+          <input id="f-${name}-apiKey" type="password" data-field="apiKey" autocomplete="new-password" spellcheck="false" />
         </div>
         <div class="row">
           <div class="field">
-            <label>模型名</label>
-            <input type="text" data-field="model" spellcheck="false" placeholder="如 black-forest-labs/FLUX.2-pro" />
+            <label for="f-${name}-model">模型名</label>
+            <input id="f-${name}-model" type="text" data-field="model" spellcheck="false" autocomplete="off" placeholder="black-forest-labs/FLUX.2-pro" />
           </div>
           <div class="field">
-            <label>接口格式</label>
-            <select data-field="format">
-              <option value="openai">OpenAI 兼容（size）</option>
-              <option value="siliconflow">SiliconFlow（image_size）</option>
+            <label for="f-${name}-format">接口格式<span class="opt">看服务商文档</span></label>
+            <select id="f-${name}-format" data-field="format">
+              <option value="openai">标准（size）</option>
+              <option value="siliconflow">SiliconFlow 中转（image_size）</option>
             </select>
           </div>
         </div>` : `
         <div class="field">
-          <label>API Key<span class="opt"></span></label>
-          <input type="password" data-field="apiKey" autocomplete="off" spellcheck="false" />
+          <label for="f-${name}-apiKey">API 密钥</label>
+          <input id="f-${name}-apiKey" type="password" data-field="apiKey" autocomplete="new-password" spellcheck="false" />
         </div>
         <div class="row">
           <div class="field">
-            <label>模型</label>
-            <input type="text" data-field="model" spellcheck="false" />
+            <label for="f-${name}-model">模型${ROLE[name] ? `<span class="opt">${ROLE[name]}</span>` : ""}</label>
+            <input id="f-${name}-model" type="text" data-field="model" spellcheck="false" autocomplete="off" />
           </div>
-          ${name === "openai" ? `
+          ${hasEdit ? `
           <div class="field">
-            <label>编辑模型<span class="opt">参考图 / 改图</span></label>
-            <input type="text" data-field="editModel" spellcheck="false" />
+            <label for="f-${name}-editModel">改图模型<span class="opt">图生图</span></label>
+            <input id="f-${name}-editModel" type="text" data-field="editModel" spellcheck="false" autocomplete="off" />
           </div>` : `
           <div class="field">
-            <label>Base URL<span class="opt">可选</span></label>
-            <input type="text" data-field="baseUrl" spellcheck="false" placeholder="默认官方地址" />
+            <label for="f-${name}-baseUrl">Base URL<span class="opt">可选</span></label>
+            <input id="f-${name}-baseUrl" type="text" data-field="baseUrl" spellcheck="false" autocomplete="off" placeholder="默认官方地址" />
           </div>`}
         </div>`}
         <div class="p-actions">
           ${TESTABLE.has(name) ? `<button type="button" class="quiet test">测试连接</button>` : ""}
+          <button type="button" class="quiet clear" hidden>清除已保存密钥</button>
           <span class="probe" role="status"></span>
         </div>
       </div>`;
@@ -420,68 +496,78 @@
     const meta = wrap.querySelector(".p-meta");
     const keyInput = wrap.querySelector('[data-field="apiKey"]');
     const modelInput = wrap.querySelector('[data-field="model"]');
-    const optNote = wrap.querySelector(".field .opt");
     const baseInput = wrap.querySelector('[data-field="baseUrl"]');
     const editInput = wrap.querySelector('[data-field="editModel"]');
     const formatInput = wrap.querySelector('[data-field="format"]');
+    const probe = wrap.querySelector(".probe");
+    const clearBtn = wrap.querySelector(".clear");
 
     const renderMeta = () => {
-      meta.textContent = p.configured ? (modelInput.value || "已保存") : "未配置";
+      if (p.configured) meta.textContent = p.envKey ? "来自环境变量" : (p.model || "已保存");
+      else meta.textContent = p.model || "未配置";
+      meta.title = meta.textContent;
       wrap.dataset.configured = p.configured ? "true" : "false";
-      optNote.textContent = p.configured ? "已保存 · 留空不修改" : "";
+      clearBtn.hidden = !p.configured || p.envKey;
     };
 
-    if (p.configured) {
-      keyInput.placeholder = "•••••••••••• 已保存";
-    } else {
-      keyInput.placeholder = "粘贴 API Key";
-    }
+    keyInput.placeholder = p.configured ? "已保存，留空则不修改" : "粘贴 API 密钥";
     modelInput.value = p.model || "";
     if (editInput) editInput.value = p.editModel || "";
     if (baseInput) baseInput.value = p.baseUrl || "";
     if (formatInput) formatInput.value = p.format || "openai";
-
     renderMeta();
 
     head.addEventListener("click", () => {
       const open = wrap.dataset.open === "true";
       wrap.dataset.open = open ? "false" : "true";
       head.setAttribute("aria-expanded", open ? "false" : "true");
-      if (!open && !p.configured) setTimeout(() => keyInput.focus(), 20);
     });
 
+    for (const input of [keyInput, modelInput, editInput, baseInput]) {
+      input?.addEventListener("input", () => {
+        markDirty();
+        wrap.dataset.test = "";
+        probe.textContent = "";
+        probe.dataset.kind = "";
+        if (input === modelInput) renderMeta();
+      });
+    }
+    formatInput?.addEventListener("change", () => { markDirty(); });
     keyInput.addEventListener("input", () => {
-      markDirty();
-      if (!p.configured && keyInput.value.trim()) {
-        wrap.dataset.configured = "true";
-        meta.textContent = modelInput.value || "待保存";
-      }
+      head.dataset.hasKey = keyInput.value.trim() ? "true" : "false";
     });
-    modelInput.addEventListener("input", () => {
+
+    clearBtn.addEventListener("click", () => {
+      const ok = window.confirm(`清除 ${LABELS[name]} 已保存的密钥？保存后生效，清除后该服务商将不可用。`);
+      if (!ok) return;
+      p.pendingClear = true;
+      p.configured = false;
+      keyInput.dataset.cleared = "true";
+      keyInput.value = "";
+      keyInput.placeholder = "粘贴 API 密钥";
+      renderMeta();
       markDirty();
-      if (!p.configured) meta.textContent = modelInput.value || "未配置";
-      else meta.textContent = modelInput.value || "已保存";
+      say("已标记清除，" + (isMac() ? "⌘ S" : "Ctrl S") + " 保存后生效");
     });
-    editInput?.addEventListener("input", markDirty);
-    baseInput?.addEventListener("input", markDirty);
-    formatInput?.addEventListener("change", markDirty);
 
     const testBtn = wrap.querySelector(".test");
-    const probe = wrap.querySelector(".probe");
     testBtn?.addEventListener("click", async () => {
       probe.dataset.kind = "";
-      probe.textContent = "测试中…";
+      probe.textContent = "正在测试当前输入…";
       testBtn.disabled = true;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
       try {
-        const key = keyInput.value.trim();
-        const response = await fetch(`/api/providers/${slug(name)}/test`, {
+        const response = await fetch(`/api/providers/${encodeURIComponent(name)}/test`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            apiKey: key || null,
+            apiKey: keyInput.value.trim() || null,
             model: modelInput.value.trim() || null,
             baseUrl: baseInput ? baseInput.value.trim() || null : null,
+            format: formatInput ? formatInput.value : null,
           }),
+          signal: controller.signal,
         });
         const body = await response.json();
         if (body.ok) {
@@ -490,13 +576,14 @@
           wrap.dataset.test = "ok";
         } else {
           probe.dataset.kind = "fail";
-          probe.textContent = body.error || "连接失败";
+          probe.textContent = body.error || "连接失败，请检查密钥与网络";
           wrap.dataset.test = "fail";
         }
       } catch (err) {
         probe.dataset.kind = "fail";
-        probe.textContent = "无法访问本地服务";
+        probe.textContent = err.name === "AbortError" ? "测试超时（20 秒），检查网络或代理" : "无法访问本地服务，请确认神笔仍在运行";
       } finally {
+        clearTimeout(timer);
         testBtn.disabled = false;
       }
     });
@@ -505,6 +592,7 @@
   }
 
   function markDirty() {
+    if (!state.loaded) return;
     setDirty(true);
     say("有未保存的修改");
   }
@@ -514,64 +602,75 @@
     const open = new Set(
       [...list.querySelectorAll('.provider[data-open="true"]')].map((node) => node.dataset.name)
     );
+    const focusedField = document.activeElement?.dataset?.field;
+    const focusedName = document.activeElement?.closest(".provider")?.dataset.name;
     list.innerHTML = "";
-    for (const name of ORDER) {
-      const p = state.providers.find((item) => item.name === name) || { name, configured: false };
-      const row = providerRow(name, p);
-      if (open.has(name)) {
+    for (const p of state.data.providers) {
+      const row = providerRow(p.name, p);
+      if (open.has(p.name)) {
         row.dataset.open = "true";
         row.querySelector(".p-head").setAttribute("aria-expanded", "true");
       }
       list.appendChild(row);
     }
-    const configured = state.providers.filter((p) => p.configured).length;
-    el("provider-count").textContent = `${configured} / ${ORDER.length} 已启用`;
+    list.setAttribute("aria-busy", "false");
+    if (focusedName && focusedField) {
+      const restored = list.querySelector(`.provider[data-name="${focusedName}"] [data-field="${focusedField}"]`);
+      restored?.focus();
+    }
+
+    const configured = state.data.providers.filter((p) => p.configured).length;
+    el("provider-count").textContent = `${configured} / ${state.data.providers.length} 已配置`;
 
     const select = el("defaultProvider");
     select.innerHTML = "";
-    for (const name of ORDER) {
-      const p = state.providers.find((item) => item.name === name);
+    for (const p of state.data.providers) {
       const option = document.createElement("option");
-      option.value = name;
-      option.textContent = (LABELS[name] || name) + (p && p.configured ? "" : "（未配置）");
+      option.value = p.name;
+      option.textContent = (LABELS[p.name] || p.name) + (p.configured ? "" : "（未配置）");
       select.appendChild(option);
     }
-    select.value = state.defaultProvider || "openai";
+    select.value = state.data.defaultProvider;
 
     for (const node of document.querySelectorAll("[data-default]")) {
       if (node.tagName === "SELECT") continue;
-      node.value = state[node.dataset.default] ?? "";
+      node.value = state.data[node.dataset.default] ?? "";
     }
-    el("mcp-snippet").textContent = JSON.stringify(state.mcp, null, 2);
-    renderInstall();
+    el("mcp-snippet").textContent = JSON.stringify(state.data.mcp, null, 2);
     setDirty(false);
-    say("　");
-    el("state-text").textContent = state.savedAt ? `已保存 ${state.savedAt}` : "尚未保存";
+    say("");
+    state.loaded = true;
+    renderState();
   }
 
-  async function renderInstall() {
+  function renderInstall(info) {
     const button = el("install-mcp");
     const status = el("install-status");
     status.dataset.kind = "";
+    if (info.registered && info.matchesThisBinary) {
+      button.textContent = "已注册";
+      button.disabled = true;
+      status.dataset.kind = "ok";
+      status.textContent = "AI 客户端启动时会自动拉起，无需再操作";
+    } else if (info.registered) {
+      button.textContent = "更新注册路径";
+      button.disabled = false;
+      status.textContent = "已注册，但指向 " + (info.command || "另一个可执行文件");
+    } else {
+      button.textContent = "一键注册";
+      button.disabled = false;
+      status.textContent = "写入用户级 MCP 配置，之后 AI 客户端会自动启动它";
+    }
+  }
+
+  async function loadInstall() {
+    const status = el("install-status");
     try {
-      const info = await fetch("/api/install").then((r) => r.json());
-      if (info.registered && info.matchesThisBinary) {
-        button.textContent = "已注册";
-        button.disabled = true;
-        status.dataset.kind = "ok";
-        status.textContent = "AI 启动时自动拉起，无需再操作";
-      } else if (info.registered) {
-        button.textContent = "更新注册路径";
-        button.disabled = false;
-        status.textContent = "已注册，但指向另一个可执行文件";
-      } else {
-        button.textContent = "一键注册";
-        button.disabled = false;
-        status.textContent = "注册后 Claude Code / Desktop 自动启动它";
-      }
+      const response = await fetch("/api/install");
+      renderInstall(await response.json());
     } catch {
       status.dataset.kind = "fail";
-      status.textContent = "无法读取注册状态";
+      status.textContent = "无法读取注册状态，请确认神笔仍在运行";
     }
   }
 
@@ -587,20 +686,19 @@
       if (body.ok) {
         status.dataset.kind = "ok";
         status.textContent = body.detail || "已注册";
-        button.textContent = "已注册";
+        await loadInstall();
       } else {
         status.dataset.kind = "fail";
-        status.textContent = body.error || "注册失败";
+        status.textContent = body.error || "注册失败，请改用下方手动配置";
         button.disabled = false;
       }
     } catch {
       status.dataset.kind = "fail";
-      status.textContent = "无法访问本地服务";
+      status.textContent = "无法访问本地服务，请确认神笔仍在运行";
       button.disabled = false;
     }
   });
 
-  // Static controls keep their listeners; only the provider rows re-render.
   el("defaultProvider").addEventListener("change", markDirty);
   for (const node of document.querySelectorAll("[data-default]")) {
     if (node.tagName === "SELECT") continue;
@@ -608,17 +706,34 @@
   }
 
   async function load() {
-    const response = await fetch("/api/config");
-    state = await response.json();
-    render();
+    el("page-error").hidden = true;
+    el("providers").setAttribute("aria-busy", "true");
+    el("state-text").textContent = "读取中…";
+    try {
+      const response = await fetch("/api/config");
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      state.data = await response.json();
+      state.savedAt = state.data.savedAtMs || 0;
+      state.loaded = false;
+      render();
+      loadInstall();
+    } catch (err) {
+      state.loaded = true;
+      el("providers").setAttribute("aria-busy", "false");
+      el("page-error").hidden = false;
+      el("page-error-detail").textContent = "神笔本地服务没有响应（" + err.message + "）。确认程序仍在运行后点「重新读取」。";
+      el("state-text").textContent = "读取失败";
+      say("读不到配置", "fail");
+    }
   }
+
+  el("retry").addEventListener("click", () => { load(); });
 
   function collect() {
     const providers = {};
     for (const wrap of document.querySelectorAll(".provider")) {
       const name = wrap.dataset.name;
       const read = (field) => wrap.querySelector(`[data-field="${field}"]`);
-      const key = read("apiKey").value.trim();
       const entry = { model: read("model").value.trim() };
       const edit = read("editModel");
       if (edit) entry.editModel = edit.value.trim();
@@ -626,7 +741,9 @@
       if (base) entry.baseUrl = base.value.trim();
       const format = read("format");
       if (format) entry.format = format.value;
+      const key = read("apiKey").value.trim();
       if (key) entry.apiKey = key;
+      if (read("apiKey").dataset.cleared === "true") entry.clearApiKey = true;
       providers[name] = entry;
     }
     return {
@@ -635,14 +752,16 @@
       inputRoot: el("inputRoot").value.trim(),
       runRetentionHours: Number(el("runRetentionHours").value || 24),
       maxConcurrent: Number(el("maxConcurrent").value || 3),
-      requestTimeoutMs: Number(el("requestTimeoutMs").value || 300000),
+      requestTimeoutSeconds: Number(el("requestTimeoutSeconds").value || 300),
       providers,
     };
   }
 
   async function save() {
-    const button = el("save");
-    button.disabled = true;
+    if (state.busy) return;
+    state.busy = true;
+    el("save").disabled = true;
+    el("revert").disabled = true;
     say("保存中…");
     try {
       const response = await fetch("/api/config", {
@@ -652,45 +771,59 @@
       });
       const body = await response.json();
       if (!response.ok) {
-        say(body.error || "保存失败", "fail");
-        button.disabled = false;
+        say(body.error || "保存失败，请检查配置目录是否可写", "fail");
+        state.busy = false;
+        setDirty(true);
         return;
       }
-      state = body;
+      state.data = body;
+      state.savedAt = body.savedAtMs || Date.now();
+      state.busy = false;
+      state.loaded = false;
       render();
-      el("state-text").textContent = state.savedAt ? `已保存 ${state.savedAt}` : "尚未保存";
       say("已保存", "ok");
     } catch (err) {
-      say("无法访问本地服务", "fail");
-      button.disabled = false;
+      say("无法访问本地服务，改动仍在页面上，请确认神笔仍在运行", "fail");
+      state.busy = false;
+      setDirty(true);
     }
   }
 
   el("save").addEventListener("click", save);
   el("revert").addEventListener("click", async () => {
+    const ok = window.confirm("放弃所有未保存的修改？");
+    if (!ok) return;
     await load();
-    el("state-text").textContent = state.savedAt ? `已保存 ${state.savedAt}` : "尚未保存";
+    say("已放弃修改");
   });
   el("copy-mcp").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
     try {
       await navigator.clipboard.writeText(el("mcp-snippet").textContent);
-      event.target.textContent = "已复制";
-      setTimeout(() => (event.target.textContent = "复制"), 1400);
+      button.textContent = "已复制";
+      say("JSON 片段已复制到剪贴板", "ok");
     } catch {
-      event.target.textContent = "复制失败";
+      button.textContent = "复制失败";
+      say("浏览器拒绝了剪贴板访问，请手动选中代码块复制", "fail");
     }
+    setTimeout(() => { button.textContent = "复制"; }, 1600);
   });
   document.addEventListener("keydown", (event) => {
+    if (event.isComposing) return;
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
       event.preventDefault();
-      if (dirty) save();
+      if (state.busy) return;
+      if (!state.dirty) { say("没有需要保存的修改"); return; }
+      save();
     }
   });
   window.addEventListener("beforeunload", (event) => {
-    if (dirty) event.preventDefault();
+    if (!state.dirty) return;
+    event.preventDefault();
+    event.returnValue = "";
   });
 
-  load().catch(() => say("无法加载配置", "fail"));
+  load();
 })();
 </script>
 </body>

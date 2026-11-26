@@ -68,6 +68,11 @@ pub async fn write_manifest(dir: &std::path::Path, manifest: &Manifest) -> anyho
 }
 
 /// Startup-only sweep so `.runs` does not grow without bound.
+///
+/// Deletion is the one irreversible thing this program does, so it only ever
+/// touches directories that this program itself created: names must start with
+/// `run-`, must be real directories (never a link), and the fresh ones are
+/// skipped. Anything else under `.runs` is left alone.
 pub async fn sweep(output_dir: &std::path::Path, retention_hours: u32) {
     if retention_hours == 0 {
         return;
@@ -78,11 +83,28 @@ pub async fn sweep(output_dir: &std::path::Path, retention_hours: u32) {
     };
     let cutoff = std::time::SystemTime::now()
         - std::time::Duration::from_secs(u64::from(retention_hours) * 3600);
+    let mut removed = 0usize;
     while let Ok(Some(entry)) = entries.next_entry().await {
-        let Ok(meta) = entry.metadata().await else { continue };
-        let Ok(modified) = meta.modified() else { continue };
-        if modified < cutoff {
-            let _ = tokio::fs::remove_dir_all(entry.path()).await;
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.starts_with("run-") {
+            continue;
         }
+        let Ok(meta) = entry.metadata().await else { continue };
+        if !meta.is_dir() {
+            continue;
+        }
+        let Ok(modified) = meta.modified() else { continue };
+        if modified < cutoff
+            && run_dir(output_dir, &name).is_ok()
+            && tokio::fs::remove_dir_all(entry.path()).await.is_ok()
+        {
+            removed += 1;
+        }
+    }
+    if removed > 0 {
+        eprintln!(
+            "shenbi: 清理了 {removed} 个超过 {retention_hours} 小时的任务记录（{}）",
+            root.display()
+        );
     }
 }
