@@ -192,9 +192,15 @@ pub async fn generate(
 
 /// Probe `/models` on the relay. Auth-less relays still answer 200/401
 /// meaningfully, so surface the HTTP result rather than guessing.
-pub async fn probe(api_key: &str, base_url: &str) -> Result<String, String> {
+/// The relay's wire format decides what a real call sends, so the settings page
+/// passes it through instead of always testing the OpenAI shape.
+pub async fn probe_with_format(api_key: &str, base_url: &str, format: &str) -> Result<String, String> {
     let Some(url) = models_url(base_url) else {
         return Err("请先填写接口地址".into());
+    };
+    let flavor = match WireFormat::parse(format) {
+        WireFormat::SiliconFlow => "SiliconFlow 格式",
+        WireFormat::OpenAi => "标准格式",
     };
     let request = http::client()
         .get(&url)
@@ -214,7 +220,7 @@ pub async fn probe(api_key: &str, base_url: &str) -> Result<String, String> {
         }
     })?;
     if response.status().is_success() {
-        return Ok("接口可达".into());
+        return Ok(format!("接口可达 · 按{flavor}发请求"));
     }
     let status = response.status();
     let body = response.text().await.unwrap_or_default();

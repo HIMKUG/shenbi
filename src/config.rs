@@ -206,11 +206,10 @@ impl Config {
         })
     }
 
+    /// Write the config atomically: a crash mid-save leaves the previous file
+    /// intact instead of a truncated one.
     pub fn save(&self) -> anyhow::Result<()> {
         let path = self.path.clone().unwrap_or_else(Config::default_path);
-        if let Some(parent) = path.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
         let mut clone = self.clone();
         clone.path = None;
         // Never persist secrets that came from the environment.
@@ -219,7 +218,68 @@ impl Config {
                 entry.api_key.clear();
             }
         }
-        std::fs::write(&path, serde_json::to_string_pretty(&clone)?)?;
+        let body = serde_json::to_vec_pretty(&clone)?;
+        crate::util::write_atomic_sync(&path, &body)?;
+        restrict_permissions(&path);
         Ok(())
+    }
+
+    /// Millisecond timestamp of the last write, for the UI's "saved N ago".
+    pub fn saved_at_ms(&self) -> Option<u128> {
+        let path = self.path.as_ref()?;
+        let modified = std::fs::metadata(path).ok()?.modified().ok()?;
+        modified
+            .duration_since(std::time::UNIX_EPOCH)
+            .ok()
+            .map(|d| d.as_millis())
+    }
+}
+
+/// The config holds API keys, so keep it readable by the owner only. Windows
+/// has no portable equivalent without extra crates; the file still lands under
+/// the user's profile, which inherits that profile's ACL.
+fn restrict_permissions(path: &std::path::Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn custom_provider_needs_key_and_url_and_model() {
+        let mut config = Config::default();
+        assert!(!config.is_configured(CUSTOM_PROVIDER));
+        config.ensure_provider(CUSTOM_PROVIDER).api_key = "k".into();
+        assert!(!config.is_configured(CUSTOM_PROVIDER), "url and model still missing");
+        let entry = config.ensure_provider(CUSTOM_PROVIDER);
+        entry.base_url = "https://example.com/v1".into();
+        entry.model = "m".into();
+        assert!(config.is_configured(CUSTOM_PROVIDER));
+    }
+
+    #[test]
+    fn save_is_atomic_and_skips_env_keys() {
+        let dir = std::env::temp_dir().join(format!("shenbi-test-{}", crate::util::pseudo_hex(4)));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("config.json");
+        let mut config = Config::default();
+        config.path = Some(path.clone());
+        config.ensure_provider("openai").api_key = "from-env".into();
+        config.env_keys.insert("openai".into());
+        config.save().unwrap();
+        let raw = std::fs::read_to_string(&path).unwrap();
+        assert!(!raw.contains("from-env"), "environment keys must not reach disk");
+        let reloaded: Config = serde_json::from_str(&raw).unwrap();
+        assert_eq!(reloaded.max_concurrent, config.max_concurrent);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
