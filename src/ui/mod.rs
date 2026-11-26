@@ -15,13 +15,34 @@ const INDEX_HTML: &str = include_str!("index.html");
 /// Display order for the settings page. Anything the config holds that is not
 /// listed here is appended alphabetically, so a provider added on the Rust side
 /// can never disappear from the UI.
-const PROVIDER_ORDER: [&str; 10] = [
-    "openai", "gemini", "replicate", "together", "grok", "ideogram", "custom", "photoroom", "fal",
-    "anthropic",
+/// Everything the settings page needs to know about a provider lives here, so
+/// the page never keeps a second copy of the order, the names or the abilities.
+struct ProviderMeta {
+    name: &'static str,
+    label: &'static str,
+    role: &'static str,
+    group: &'static str,
+}
+
+const PROVIDERS: [ProviderMeta; 10] = [
+    ProviderMeta { name: "openai", label: "OpenAI", role: "生成 · 改图", group: "生成" },
+    ProviderMeta { name: "gemini", label: "Google Gemini", role: "生成", group: "生成" },
+    ProviderMeta { name: "replicate", label: "Replicate", role: "生成 · 放大", group: "生成" },
+    ProviderMeta { name: "together", label: "Together AI", role: "生成", group: "生成" },
+    ProviderMeta { name: "grok", label: "xAI Grok", role: "生成", group: "生成" },
+    ProviderMeta { name: "ideogram", label: "Ideogram", role: "生成", group: "生成" },
+    ProviderMeta { name: "custom", label: "自定义接口", role: "生成 · OpenAI 兼容", group: "生成" },
+    ProviderMeta { name: "photoroom", label: "Photoroom", role: "抠图 · 合成", group: "图像处理" },
+    ProviderMeta { name: "fal", label: "fal.ai", role: "生成 · 改图", group: "图像处理" },
+    ProviderMeta { name: "anthropic", label: "Anthropic", role: "规划（不生成图片）", group: "规划" },
 ];
 
 /// Providers whose credentials can be checked without spending money.
 const TESTABLE: [&str; 7] = ["openai", "gemini", "replicate", "together", "grok", "anthropic", "custom"];
+
+fn meta_of(name: &str) -> Option<&'static ProviderMeta> {
+    PROVIDERS.iter().find(|m| m.name == name)
+}
 
 #[derive(Clone)]
 pub struct AppState {
@@ -138,21 +159,35 @@ async fn index(State(state): State<AppState>) -> Response {
     response
 }
 
+/// Group order on the page: what generates first, then the processing helpers,
+/// then the planner. Unknown names trail at the end.
+fn group_rank(group: &str) -> u8 {
+    match group {
+        "生成" => 0,
+        "图像处理" => 1,
+        "规划" => 2,
+        _ => 3,
+    }
+}
+
 fn provider_names(config: &Config) -> Vec<String> {
-    let mut names: Vec<String> = PROVIDER_ORDER
+    let mut names: Vec<(u8, usize, String)> = PROVIDERS
         .iter()
-        .filter(|name| config.providers.contains_key(**name))
-        .map(|name| (*name).to_string())
+        .enumerate()
+        .filter(|(_, meta)| config.providers.contains_key(meta.name))
+        .map(|(index, meta)| (group_rank(meta.group), index, meta.name.to_string()))
         .collect();
-    let mut rest: Vec<String> = config
+    let mut rest: Vec<(u8, usize, String)> = config
         .providers
         .keys()
-        .filter(|name| !PROVIDER_ORDER.contains(&name.as_str()))
-        .cloned()
+        .filter(|name| meta_of(name).is_none())
+        .enumerate()
+        .map(|(index, name)| (3, 100 + index, name.clone()))
         .collect();
-    rest.sort();
+    rest.sort_by(|a, b| a.2.cmp(&b.2));
     names.append(&mut rest);
-    names
+    names.sort_by_key(|(rank, index, _)| (*rank, *index));
+    names.into_iter().map(|(_, _, name)| name).collect()
 }
 
 fn snapshot(config: &Config) -> Value {
@@ -161,11 +196,17 @@ fn snapshot(config: &Config) -> Value {
         .map(|name| {
             let entry = config.provider(&name);
             let env_key = config.env_keys.contains(&name);
+            let meta = meta_of(&name);
             json!({
                 "name": name,
+                "label": meta.map(|m| m.label).unwrap_or(name.as_str()),
+                "role": meta.map(|m| m.role).unwrap_or(""),
+                "group": meta.map(|m| m.group).unwrap_or("其他"),
                 "configured": config.is_configured(&name),
                 "envKey": env_key,
                 "testable": TESTABLE.contains(&name.as_str()),
+                // Only these two providers have a separate editing model.
+                "supportsEdit": matches!(name.as_str(), "openai" | "fal"),
                 "model": entry.map(|p| p.model.clone()).unwrap_or_default(),
                 "editModel": entry.map(|p| p.edit_model.clone()).unwrap_or_default(),
                 "baseUrl": entry.map(|p| p.base_url.clone()).unwrap_or_default(),
@@ -180,6 +221,7 @@ fn snapshot(config: &Config) -> Value {
     // Client configs are JSON, so always emit forward slashes.
     let exe = exe.replace('\\', "/");
     json!({
+        "version": env!("CARGO_PKG_VERSION"),
         "defaultProvider": config.default_provider,
         "outputDir": config.output_dir,
         "inputRoot": config.input_root,
@@ -188,7 +230,8 @@ fn snapshot(config: &Config) -> Value {
         "requestTimeoutSeconds": config.request_timeout_ms / 1000,
         "providers": providers,
         "savedAtMs": config.saved_at_ms().unwrap_or(0),
-        "configPath": config.path.as_ref().map(|p| p.display().to_string()).unwrap_or_default(),
+        // Shown as-is in the footer; the page abbreviates the home directory.
+        "configPath": config.path.as_ref().map(|p| crate::util::display_path(p)).unwrap_or_default(),
         "mcp": {
             "mcpServers": {
                 "shenbi": {

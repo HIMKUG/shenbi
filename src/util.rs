@@ -68,6 +68,19 @@ pub fn expand_tilde(path: &str) -> PathBuf {
     PathBuf::from(path)
 }
 
+/// `C:\Users\me\.shenbi\config.json` → `~/.shenbi/config.json`, so a screenshot
+/// of the settings page does not carry the account name.
+pub fn display_path(path: &std::path::Path) -> String {
+    let text = path.display().to_string().replace('\\', "/");
+    if let Some(home) = home_dir() {
+        let home = home.display().to_string().replace('\\', "/");
+        if let Some(rest) = text.strip_prefix(&home) {
+            return format!("~{}", rest);
+        }
+    }
+    text
+}
+
 pub fn home_dir() -> Option<PathBuf> {
     std::env::var_os("USERPROFILE")
         .or_else(|| std::env::var_os("HOME"))
